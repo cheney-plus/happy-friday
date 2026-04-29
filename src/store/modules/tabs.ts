@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia';
 
+export type IconName = 'UserRound' | 'FolderKanban' | 'FileText' | 'CalendarDays' | 'Bot' | 'Clock' | 'Settings';
+
 export interface Tab {
-  id: string; // unique identifier (usually route path)
-  path: string; // route path
-  i18nKey: string; // translation key for title
-  icon?: string; // icon to display
+  id: string;
+  path: string;
+  i18nKey: string;
+  icon?: IconName;
 }
 
 export const useTabStore = defineStore('tabs', {
@@ -24,11 +26,9 @@ export const useTabStore = defineStore('tabs', {
       const index = this.openedTabs.findIndex(t => t.id === id);
       if (index !== -1) {
         this.openedTabs.splice(index, 1);
-        
-        // If we closed the active tab, we need to switch to another tab
+
         if (this.activeTabId === id) {
           if (this.openedTabs.length > 0) {
-            // Switch to the previous tab if possible, otherwise the first tab
             const nextIndex = Math.max(0, index - 1);
             this.activeTabId = this.openedTabs[nextIndex].id;
           } else {

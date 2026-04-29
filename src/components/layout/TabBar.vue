@@ -1,35 +1,62 @@
 <template>
   <div class="tab-bar-container" data-tauri-drag-region>
     <div class="mac-traffic-lights-spacer" data-tauri-drag-region></div>
-    
+
     <div class="tabs-list">
-      <div 
-        v-for="tab in tabStore.openedTabs" 
+      <div
+        v-for="tab in tabStore.openedTabs"
         :key="tab.id"
         :class="['tab-item', { active: tabStore.activeTabId === tab.id }]"
         role="tab"
         @click="switchTab(tab)"
       >
-        <span class="tab-icon" v-if="tab.icon">{{ tab.icon }}</span>
+        <component
+          v-if="tab.icon"
+          :is="iconMap[tab.icon]"
+          :size="14"
+          :stroke-width="1.8"
+          class="tab-icon"
+        />
         <span class="tab-title">{{ t(tab.i18nKey) }}</span>
         <button class="tab-close-btn" @click.stop="closeTab(tab.id)">
-          &times;
+          <X :size="12" :stroke-width="2" />
         </button>
       </div>
     </div>
-    
+
     <div class="tab-bar-empty-space" data-tauri-drag-region></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useTabStore, type Tab } from '@/store';
+import { useTabStore, type Tab, type IconName } from '@/store';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
+import {
+  X,
+  UserRound,
+  FolderKanban,
+  FileText,
+  CalendarDays,
+  Bot,
+  Clock,
+  Settings
+} from 'lucide-vue-next';
+import type { Component } from 'vue';
 
 const tabStore = useTabStore();
 const { t } = useI18n();
 const router = useRouter();
+
+const iconMap: Record<IconName, Component> = {
+  UserRound,
+  FolderKanban,
+  FileText,
+  CalendarDays,
+  Bot,
+  Clock,
+  Settings
+};
 
 const switchTab = (tab: Tab) => {
   if (tabStore.activeTabId !== tab.id) {
@@ -40,13 +67,11 @@ const switchTab = (tab: Tab) => {
 const closeTab = (id: string) => {
   tabStore.removeTab(id);
   if (tabStore.activeTabId) {
-    // Navigate to the newly active tab if there's still one
     const activeTab = tabStore.openedTabs.find(t => t.id === tabStore.activeTabId);
     if (activeTab) {
       router.push(activeTab.path);
     }
   } else {
-    // If no tabs left, maybe go to a default route or show an empty state
     router.push('/workspace');
   }
 };
@@ -55,14 +80,14 @@ const closeTab = (id: string) => {
 <style scoped>
 .tab-bar-container {
   display: flex;
-  align-items: flex-end;
-  height: 48px;
+  align-items: center;
+  height: var(--tab-bar-height);
   background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
-  padding-top: 12px;
+  padding-left: 4px;
   user-select: none;
   -webkit-app-region: drag;
   app-region: drag;
+  flex-shrink: 0;
 }
 
 .mac-traffic-lights-spacer {
@@ -72,9 +97,9 @@ const closeTab = (id: string) => {
 
 .tabs-list {
   display: flex;
-  height: 36px;
-  align-items: flex-end;
-  gap: 4px;
+  align-items: center;
+  gap: 1px;
+  height: 100%;
   -webkit-app-region: no-drag;
   app-region: no-drag;
 }
@@ -82,48 +107,32 @@ const closeTab = (id: string) => {
 .tab-item {
   display: flex;
   align-items: center;
-  height: 32px;
-  min-width: 120px;
-  max-width: 200px;
-  padding: 0 12px;
-  background-color: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-bottom: none;
-  border-top-left-radius: 8px;
-  border-top-right-radius: 8px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
   cursor: pointer;
   color: var(--text-secondary);
-  position: relative;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  transition: background-color 0.15s, color 0.15s;
+  gap: 5px;
+  max-width: 180px;
 }
 
 .tab-item:hover {
   background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .tab-item.active {
-  height: 36px;
+  background-color: var(--bg-primary);
   color: var(--text-primary);
-  background-color: var(--bg-primary);
-  z-index: 2;
   font-weight: 500;
-  box-shadow: 0 -2px 6px rgba(0,0,0,0.05);
-}
-
-.tab-item.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background-color: var(--bg-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .tab-icon {
-  margin-right: 6px;
-  font-size: 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 .tab-title {
@@ -131,24 +140,25 @@ const closeTab = (id: string) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 12.5px;
+  line-height: 1;
 }
 
 .tab-close-btn {
   background: none;
   border: none;
-  color: var(--text-secondary);
-  font-size: 16px;
+  color: var(--text-tertiary);
   cursor: pointer;
-  margin-left: 8px;
-  border-radius: 50%;
+  margin-left: 2px;
+  border-radius: 4px;
   width: 18px;
   height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.2s, background-color 0.2s;
+  transition: opacity 0.15s, background-color 0.15s, color 0.15s;
+  flex-shrink: 0;
 }
 
 .tab-item:hover .tab-close-btn {
@@ -156,7 +166,7 @@ const closeTab = (id: string) => {
 }
 
 .tab-close-btn:hover {
-  background-color: var(--border-color);
+  background-color: var(--bg-hover);
   color: var(--text-primary);
 }
 

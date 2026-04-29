@@ -1,139 +1,171 @@
 <template>
-  <aside :class="['sidebar', { collapsed: appStore.sidebarCollapsed }]">
-    <div class="sidebar-header">
-      <div class="avatar" @click="toggleSidebar">
-        <!-- Avatar icon placeholder -->
-        <span v-if="appStore.sidebarCollapsed">👤</span>
-        <span v-else>👤 User</span>
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="sidebar-avatar">
+        <UserRound :size="22" :stroke-width="1.8" />
       </div>
     </div>
-    
+
     <nav class="sidebar-menu">
-      <router-link 
-        v-for="item in menuConfig" 
-        :key="item.key" 
+      <router-link
+        v-for="item in menuConfig"
+        :key="item.key"
         :to="item.path"
         class="menu-item"
         active-class="active"
       >
-        <span class="icon">{{ item.icon }}</span>
-        <span v-if="!appStore.sidebarCollapsed" class="label">{{ t(item.i18nKey) }}</span>
+        <component :is="item.iconComponent" :size="20" :stroke-width="1.8" />
+        <span class="menu-tooltip">{{ t(item.i18nKey) }}</span>
       </router-link>
     </nav>
-    
+
     <div class="sidebar-bottom">
-      <router-link 
-        v-for="item in bottomMenuConfig" 
-        :key="item.key" 
+      <router-link
+        v-for="item in bottomMenuConfig"
+        :key="item.key"
         :to="item.path"
         class="menu-item"
         active-class="active"
       >
-        <span class="icon">{{ item.icon }}</span>
-        <span v-if="!appStore.sidebarCollapsed" class="label">{{ t(item.i18nKey) }}</span>
+        <component :is="item.iconComponent" :size="20" :stroke-width="1.8" />
+        <span class="menu-tooltip">{{ t(item.i18nKey) }}</span>
       </router-link>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
-import { useAppStore } from '@/store';
 import { useI18n } from 'vue-i18n';
+import {
+  UserRound,
+  FolderKanban,
+  FileText,
+  CalendarDays,
+  Bot,
+  Clock,
+  Settings
+} from 'lucide-vue-next';
 
-const appStore = useAppStore();
 const { t } = useI18n();
 
-const toggleSidebar = () => {
-  appStore.toggleSidebar();
-};
-
 const menuConfig = [
-  { key: 'user', path: '/user', icon: '👤', i18nKey: 'user.title' },
-  { key: 'workspace', path: '/workspace', icon: '📁', i18nKey: 'workspace.title' },
-  { key: 'note', path: '/note', icon: '📝', i18nKey: 'note.title' },
-  { key: 'schedule', path: '/schedule', icon: '📅', i18nKey: 'schedule.title' },
-  { key: 'friday', path: '/friday', icon: '🤖', i18nKey: 'friday.title' }
+  { key: 'user', path: '/user', iconComponent: UserRound, i18nKey: 'user.title' },
+  { key: 'workspace', path: '/workspace', iconComponent: FolderKanban, i18nKey: 'workspace.title' },
+  { key: 'note', path: '/note', iconComponent: FileText, i18nKey: 'note.title' },
+  { key: 'schedule', path: '/schedule', iconComponent: CalendarDays, i18nKey: 'schedule.title' },
+  { key: 'friday', path: '/friday', iconComponent: Bot, i18nKey: 'friday.title' }
 ];
 
 const bottomMenuConfig = [
-  { key: 'history', path: '/history', icon: '🕒', i18nKey: 'history.title' },
-  { key: 'settings', path: '/settings', icon: '⚙️', i18nKey: 'settings.title' }
+  { key: 'history', path: '/history', iconComponent: Clock, i18nKey: 'history.title' },
+  { key: 'settings', path: '/settings', iconComponent: Settings, i18nKey: 'settings.title' }
 ];
 </script>
 
 <style scoped>
 .sidebar {
-  width: 240px;
+  width: var(--sidebar-width);
   height: 100%;
   background-color: var(--bg-sidebar);
-  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  transition: width 0.3s ease;
-  overflow: hidden;
+  align-items: center;
+  padding: 8px 0;
+  flex-shrink: 0;
 }
 
-.sidebar.collapsed {
-  width: var(--sidebar-width);
+.sidebar-top {
+  padding: 8px 0 12px;
 }
 
-.sidebar-header {
-  padding: 16px;
-  border-bottom: 1px solid var(--border-color);
-  cursor: pointer;
-}
-
-.avatar {
+.sidebar-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--bg-hover);
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-weight: bold;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.sidebar-avatar:hover {
+  background-color: var(--bg-active);
+  color: var(--text-primary);
 }
 
 .sidebar-menu {
   flex: 1;
-  padding: 12px 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
 }
 
 .sidebar-bottom {
-  padding: 12px 0;
-  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  padding-top: 8px;
 }
 
 .menu-item {
+  position: relative;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
-  padding: 8px 16px;
-  color: var(--text-primary);
-  transition: background-color 0.2s;
-}
-
-.sidebar.collapsed .menu-item {
   justify-content: center;
-  padding: 8px 0;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  transition: background-color 0.15s, color 0.15s;
 }
 
 .menu-item:hover {
   background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .menu-item.active {
-  background-color: var(--bg-hover);
+  background-color: var(--accent-light);
   color: var(--accent-color);
-  font-weight: bold;
 }
 
-.icon {
-  font-size: 1.2rem;
-  min-width: 24px;
-  text-align: center;
-}
-
-.label {
-  margin-left: 12px;
+.menu-tooltip {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
   white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 100;
+}
+
+.menu-tooltip::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 4px solid transparent;
+  border-right-color: var(--text-primary);
+  border-left: none;
+}
+
+.menu-item:hover .menu-tooltip {
+  opacity: 1;
 }
 </style>
