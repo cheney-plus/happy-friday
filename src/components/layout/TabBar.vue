@@ -7,30 +7,41 @@
       <PanelLeftOpen v-else :size="16" :stroke-width="1.8" />
     </button>
 
-    <div class="tabs-list">
-      <template v-for="(tab, index) in tabStore.openedTabs" :key="tab.id">
-        <span v-if="index > 0" class="tab-divider">|</span>
-        <div
-          :class="['tab-item', { active: tabStore.activeTabId === tab.id }]"
-          role="tab"
-          @click="switchTab(tab)"
-        >
-          <component
-            v-if="tab.icon"
-            :is="iconMap[tab.icon]"
-            :size="14"
-            :stroke-width="2"
-            class="tab-icon"
-          />
-          <span class="tab-title">{{ t(tab.i18nKey) }}</span>
-          <button class="tab-close-btn" @click.stop="closeTab(tab.id)">
-            <X :size="12" :stroke-width="2" />
-          </button>
-        </div>
-      </template>
+    <div class="tabs-area" ref="tabsAreaRef">
+      <div class="tabs-scroll" ref="tabsScrollRef" @wheel.prevent="onWheel">
+        <template v-for="(tab, index) in tabStore.openedTabs" :key="tab.id">
+          <span v-if="index > 0" :class="['tab-divider', { hidden: tabStore.activeTabId === tab.id || tabStore.openedTabs[index - 1]?.id === tabStore.activeTabId }]"></span>
+          <div
+            :class="['tab-item', { active: tabStore.activeTabId === tab.id }]"
+            :style="{ width: tabWidth + 'px' }"
+            role="tab"
+            @click="switchTab(tab)"
+            @mouseenter="hoveredTabId = tab.id"
+            @mouseleave="hoveredTabId = ''"
+          >
+            <component
+              v-if="tab.icon"
+              :is="iconMap[tab.icon]"
+              :size="14"
+              :stroke-width="2"
+              class="tab-icon"
+            />
+            <span class="tab-title">{{ t(tab.i18nKey) }}</span>
+            <button v-show="hoveredTabId === tab.id" class="tab-close-btn" @click.stop="closeTab(tab.id)">
+              <X :size="12" :stroke-width="2" />
+            </button>
+          </div>
+        </template>
+      </div>
+
+      <button class="add-tab-btn" @click="addFridayTab">
+        <Plus :size="16" :stroke-width="2.5" />
+      </button>
+
+      <div class="tabs-area-spacer" data-tauri-drag-region></div>
     </div>
 
-    <div class="tab-bar-empty-space" data-tauri-drag-region></div>
+    <div class="tab-bar-right-spacer" data-tauri-drag-region></div>
   </div>
 </template>
 
@@ -40,6 +51,7 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import {
   X,
+  Plus,
   PanelLeftClose,
   PanelLeftOpen,
   FolderKanban,
@@ -50,6 +62,7 @@ import {
   Settings
 } from 'lucide-vue-next';
 import type { Component } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 
 const tabStore = useTabStore();
 const appStore = useAppStore();
@@ -65,8 +78,76 @@ const iconMap: Record<IconName, Component> = {
   Settings
 };
 
+const tabsAreaRef = ref<HTMLElement | null>(null);
+const tabsScrollRef = ref<HTMLElement | null>(null);
+const tabsAreaWidth = ref(0);
+const hoveredTabId = ref('');
+
+const ADD_BTN_WIDTH = 28;
+const TAB_GAP = 3;
+const MAX_TAB_WIDTH = 150;
+const MIN_TAB_WIDTH = 100;
+
+const tabWidth = computed(() => {
+  const count = tabStore.openedTabs.length;
+  if (count === 0) return 0;
+  const addBtnSpace = ADD_BTN_WIDTH + TAB_GAP;
+  const availableForTabs = tabsAreaWidth.value - addBtnSpace;
+  const totalGaps = (count - 1) * TAB_GAP;
+  const width = (availableForTabs - totalGaps) / count;
+  return Math.min(Math.max(width, MIN_TAB_WIDTH), MAX_TAB_WIDTH);
+});
+
+const scrollToActiveTab = () => {
+  hoveredTabId.value = '';
+  nextTick(() => {
+    if (!tabsScrollRef.value) return;
+    const activeEl = tabsScrollRef.value.querySelector('.tab-item.active') as HTMLElement;
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    }
+  });
+};
+
+const scrollToEnd = () => {
+  nextTick(() => {
+    if (!tabsScrollRef.value) return;
+    tabsScrollRef.value.scrollTo({ left: tabsScrollRef.value.scrollWidth, behavior: 'smooth' });
+  });
+};
+
+watch(() => tabStore.activeTabId, scrollToActiveTab);
+watch(() => tabStore.openedTabs.length, (newLen, oldLen) => {
+  if (newLen > oldLen) {
+    scrollToEnd();
+  } else {
+    nextTick(scrollToActiveTab);
+  }
+});
+
+let resizeObserver: ResizeObserver | null = null;
+
+onMounted(() => {
+  if (tabsAreaRef.value) {
+    resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        tabsAreaWidth.value = entry.contentRect.width;
+      }
+    });
+    resizeObserver.observe(tabsAreaRef.value);
+    tabsAreaWidth.value = tabsAreaRef.value.getBoundingClientRect().width;
+  }
+});
+
+onUnmounted(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
+});
+
 const switchTab = (tab: Tab) => {
   if (tabStore.activeTabId !== tab.id) {
+    tabStore.setActiveTab(tab.id);
     router.push(tab.path);
   }
 };
@@ -82,6 +163,16 @@ const closeTab = (id: string) => {
     router.push('/workspace');
   }
 };
+
+const addFridayTab = () => {
+  const tab = tabStore.addFridayTab();
+  router.push(tab.path);
+};
+
+const onWheel = (e: WheelEvent) => {
+  if (!tabsScrollRef.value) return;
+  tabsScrollRef.value.scrollBy({ left: e.deltaY, behavior: 'auto' });
+};
 </script>
 
 <style scoped>
@@ -91,6 +182,8 @@ const closeTab = (id: string) => {
   height: var(--tab-bar-height);
   background-color: var(--bg-secondary);
   padding-left: 4px;
+  -webkit-user-select: none;
+  -moz-user-select: none;
   user-select: none;
   -webkit-app-region: drag;
   app-region: drag;
@@ -100,6 +193,7 @@ const closeTab = (id: string) => {
 .mac-traffic-lights-spacer {
   width: 80px;
   height: 100%;
+  flex-shrink: 0;
 }
 
 .sidebar-toggle-btn {
@@ -125,38 +219,62 @@ const closeTab = (id: string) => {
   opacity: 0.85;
 }
 
-.tabs-list {
+.tabs-area {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   height: 100%;
+  flex: 1;
+  min-width: 0;
   -webkit-app-region: no-drag;
   app-region: no-drag;
   padding-left: 4px;
 }
 
+.tabs-scroll {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .tab-divider {
-  color: var(--border-color);
-  font-size: 12px;
-  line-height: 1;
-  user-select: none;
-  opacity: 0.7;
+  width: 1.5px;
+  height: 16px;
+  background-color: var(--text-tertiary);
+  flex-shrink: 0;
+  margin: 0 1px;
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+
+.tab-divider.hidden {
+  opacity: 0;
 }
 
 .tab-item {
   display: flex;
   align-items: center;
-  height: 28px;
+  height: 32px;
   padding: 0 10px;
-  border-radius: 6px;
+  border-radius: 10px;
   cursor: pointer;
   color: var(--text-primary);
   opacity: 0.7;
-  transition: background-color 0.15s, opacity 0.15s;
+  transition: background-color 0.15s, opacity 0.15s, width 0.2s ease;
   gap: 5px;
-  max-width: 140px;
-  min-width: 80px;
+  flex-shrink: 0;
   font-weight: 600;
+  user-select: none;
+  overflow: hidden;
 }
 
 .tab-item:hover {
@@ -179,11 +297,15 @@ const closeTab = (id: string) => {
 .tab-title {
   flex: 1;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12.5px;
   line-height: 1;
   font-weight: inherit;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(to right, #000 70%, transparent 100%);
+  mask-image: linear-gradient(to right, #000 70%, transparent 100%);
 }
 
 .tab-close-btn {
@@ -198,13 +320,8 @@ const closeTab = (id: string) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  transition: opacity 0.15s, background-color 0.15s, color 0.15s;
+  transition: background-color 0.15s, color 0.15s;
   flex-shrink: 0;
-}
-
-.tab-item:hover .tab-close-btn {
-  opacity: 1;
 }
 
 .tab-close-btn:hover {
@@ -212,8 +329,38 @@ const closeTab = (id: string) => {
   color: var(--text-primary);
 }
 
-.tab-bar-empty-space {
+.add-tab-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  opacity: 0.5;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background-color 0.15s, opacity 0.15s;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.add-tab-btn:hover {
+  background-color: var(--bg-hover);
+  opacity: 0.85;
+}
+
+.tabs-area-spacer {
   flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.tab-bar-right-spacer {
+  flex-shrink: 0;
+  min-width: 50px;
   height: 100%;
 }
 </style>

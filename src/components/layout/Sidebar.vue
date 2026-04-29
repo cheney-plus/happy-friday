@@ -50,7 +50,6 @@ import {
   FolderKanban,
   FileText,
   CalendarDays,
-  Bot,
   Clock,
   Settings
 } from 'lucide-vue-next';
@@ -61,8 +60,7 @@ const { t } = useI18n();
 const menuConfig = [
   { key: 'workspace', path: '/workspace', iconComponent: FolderKanban, i18nKey: 'workspace.title' },
   { key: 'note', path: '/note', iconComponent: FileText, i18nKey: 'note.title' },
-  { key: 'schedule', path: '/schedule', iconComponent: CalendarDays, i18nKey: 'schedule.title' },
-  { key: 'friday', path: '/friday', iconComponent: Bot, i18nKey: 'friday.title' }
+  { key: 'schedule', path: '/schedule', iconComponent: CalendarDays, i18nKey: 'schedule.title' }
 ];
 
 const bottomMenuConfig = [

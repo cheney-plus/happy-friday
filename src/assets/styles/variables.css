@@ -1,7 +1,7 @@
 :root {
   --bg-primary: #ffffff;
-  --bg-secondary: #f5f5f4;
-  --bg-sidebar: #f5f5f4;
+  --bg-secondary: #ececea;
+  --bg-sidebar: #ececea;
   --bg-hover: rgba(0, 0, 0, 0.06);
   --bg-active: rgba(0, 0, 0, 0.08);
   --text-primary: #1c1917;
@@ -11,14 +11,14 @@
   --accent-color: #2563eb;
   --accent-light: rgba(37, 99, 235, 0.1);
   --sidebar-width: 56px;
-  --tab-bar-height: 40px;
+  --tab-bar-height: 46px;
   --content-radius: 10px;
 }
 
 [data-theme='dark'] {
   --bg-primary: #1c1917;
-  --bg-secondary: #292524;
-  --bg-sidebar: #292524;
+  --bg-secondary: #232120;
+  --bg-sidebar: #232120;
   --bg-hover: rgba(255, 255, 255, 0.06);
   --bg-active: rgba(255, 255, 255, 0.08);
   --text-primary: rgba(255, 255, 255, 0.92);

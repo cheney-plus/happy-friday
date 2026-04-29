@@ -44,12 +44,24 @@ watch(
       const menu = allMenus.find(m => m.path === rootPath);
 
       if (menu) {
-        tabStore.addTab({
-          id: newPath,
-          path: newPath,
-          i18nKey: menu.i18nKey,
-          icon: menu.icon
-        });
+        if (rootPath === '/friday') {
+          const fridayTabs = tabStore.openedTabs.filter(t => t.path === '/friday');
+          if (fridayTabs.length === 0) {
+            tabStore.addFridayTab();
+          } else {
+            const activeTab = tabStore.openedTabs.find(t => t.id === tabStore.activeTabId);
+            if (!activeTab || activeTab.path !== '/friday') {
+              tabStore.setActiveTab(fridayTabs[fridayTabs.length - 1].id);
+            }
+          }
+        } else {
+          tabStore.addTab({
+            id: newPath,
+            path: newPath,
+            i18nKey: menu.i18nKey,
+            icon: menu.icon
+          });
+        }
       }
     }
   },

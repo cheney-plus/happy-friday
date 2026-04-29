@@ -12,7 +12,8 @@ export interface Tab {
 export const useTabStore = defineStore('tabs', {
   state: () => ({
     openedTabs: [] as Tab[],
-    activeTabId: ''
+    activeTabId: '',
+    fridayCounter: 0
   }),
   actions: {
     addTab(tab: Tab) {
@@ -21,6 +22,18 @@ export const useTabStore = defineStore('tabs', {
         this.openedTabs.push(tab);
       }
       this.activeTabId = tab.id;
+    },
+    addFridayTab() {
+      this.fridayCounter++;
+      const tab: Tab = {
+        id: `friday-${this.fridayCounter}`,
+        path: '/friday',
+        i18nKey: 'friday.title',
+        icon: 'Bot'
+      };
+      this.openedTabs.push(tab);
+      this.activeTabId = tab.id;
+      return tab;
     },
     removeTab(id: string) {
       const index = this.openedTabs.findIndex(t => t.id === id);
