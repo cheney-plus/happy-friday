@@ -27,7 +27,7 @@
               class="tab-icon"
             />
             <span class="tab-title">{{ t(tab.i18nKey) }}</span>
-            <button v-show="hoveredTabId === tab.id" class="tab-close-btn" @click.stop="closeTab(tab.id)">
+            <button v-show="hoveredTabId === tab.id && !(tabStore.openedTabs.length === 1 && tab.path === '/friday')" class="tab-close-btn" @click.stop="closeTab(tab.id)">
               <X :size="12" :stroke-width="2" />
             </button>
           </div>
