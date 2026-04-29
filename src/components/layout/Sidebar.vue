@@ -1,34 +1,49 @@
 <template>
-  <aside v-show="appStore.sidebarVisible" class="sidebar">
-    <nav class="sidebar-menu">
-      <router-link
-        v-for="item in menuConfig"
-        :key="item.key"
-        :to="item.path"
-        class="menu-item"
-        active-class="active"
-      >
-        <component :is="item.iconComponent" :size="20" :stroke-width="1.6" />
-        <span class="menu-tooltip">{{ t(item.i18nKey) }}</span>
-      </router-link>
-    </nav>
+  <aside :class="['sidebar', { hidden: !appStore.sidebarVisible }]">
+    <div class="sidebar-inner">
+      <div class="sidebar-avatar">
+        <img src="@/assets/images/user.png" alt="avatar" class="avatar-img" />
+      </div>
 
-    <div class="sidebar-bottom">
-      <router-link
-        v-for="item in bottomMenuConfig"
-        :key="item.key"
-        :to="item.path"
-        class="menu-item"
-        active-class="active"
-      >
-        <component :is="item.iconComponent" :size="20" :stroke-width="1.6" />
-        <span class="menu-tooltip">{{ t(item.i18nKey) }}</span>
-      </router-link>
+      <nav class="sidebar-menu">
+        <router-link
+          v-for="item in menuConfig"
+          :key="item.key"
+          :to="item.path"
+          class="menu-item"
+          active-class="active"
+          @mouseenter="showTooltip($event, t(item.i18nKey))"
+          @mouseleave="hideTooltip"
+        >
+          <component :is="item.iconComponent" :size="20" :stroke-width="1.6" />
+        </router-link>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <router-link
+          v-for="item in bottomMenuConfig"
+          :key="item.key"
+          :to="item.path"
+          class="menu-item"
+          active-class="active"
+          @mouseenter="showTooltip($event, t(item.i18nKey))"
+          @mouseleave="hideTooltip"
+        >
+          <component :is="item.iconComponent" :size="20" :stroke-width="1.6" />
+        </router-link>
+      </div>
     </div>
+
+    <Teleport to="body">
+      <div v-if="tooltip.visible" class="floating-tooltip" :style="tooltip.style">
+        {{ tooltip.text }}
+      </div>
+    </Teleport>
   </aside>
 </template>
 
 <script setup lang="ts">
+import { reactive } from 'vue';
 import { useAppStore } from '@/store';
 import { useI18n } from 'vue-i18n';
 import {
@@ -54,6 +69,27 @@ const bottomMenuConfig = [
   { key: 'history', path: '/history', iconComponent: Clock, i18nKey: 'history.title' },
   { key: 'settings', path: '/settings', iconComponent: Settings, i18nKey: 'settings.title' }
 ];
+
+const tooltip = reactive({
+  visible: false,
+  text: '',
+  style: {} as Record<string, string>
+});
+
+const showTooltip = (event: MouseEvent, text: string) => {
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+  tooltip.text = text;
+  tooltip.style = {
+    top: `${rect.top + rect.height / 2}px`,
+    left: `${rect.right + 10}px`,
+    transform: 'translateY(-50%)'
+  };
+  tooltip.visible = true;
+};
+
+const hideTooltip = () => {
+  tooltip.visible = false;
+};
 </script>
 
 <style scoped>
@@ -61,11 +97,37 @@ const bottomMenuConfig = [
   width: var(--sidebar-width);
   height: 100%;
   background-color: var(--bg-sidebar);
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.hidden {
+  width: 0;
+}
+
+.sidebar-inner {
+  width: var(--sidebar-width);
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 12px 0;
+}
+
+.sidebar-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
   flex-shrink: 0;
+  margin-bottom: 24px;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .sidebar-menu {
@@ -73,22 +135,20 @@ const bottomMenuConfig = [
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 18px;
   width: 100%;
-  padding-top: 4px;
 }
 
 .sidebar-bottom {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   width: 100%;
   padding-top: 8px;
 }
 
 .menu-item {
-  position: relative;
   width: 40px;
   height: 40px;
   display: flex;
@@ -96,26 +156,25 @@ const bottomMenuConfig = [
   justify-content: center;
   border-radius: 10px;
   color: var(--text-primary);
-  opacity: 0.55;
+  opacity: 0.85;
   transition: background-color 0.15s, opacity 0.15s, color 0.15s;
 }
 
 .menu-item:hover {
   background-color: var(--bg-hover);
-  opacity: 0.85;
-}
-
-.menu-item.active {
-  background-color: var(--accent-light);
-  color: var(--accent-color);
   opacity: 1;
 }
 
-.menu-tooltip {
-  position: absolute;
-  left: calc(100% + 10px);
-  top: 50%;
-  transform: translateY(-50%);
+.menu-item.active {
+  background-color: rgba(0, 0, 0, 0.08);
+  color: var(--text-primary);
+  opacity: 1;
+}
+</style>
+
+<style>
+.floating-tooltip {
+  position: fixed;
   background-color: var(--text-primary);
   color: var(--bg-primary);
   font-size: 12px;
@@ -124,23 +183,23 @@ const bottomMenuConfig = [
   border-radius: 6px;
   white-space: nowrap;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s;
-  z-index: 100;
+  z-index: 99999;
+  animation: tooltip-fade-in 0.12s ease-out;
 }
 
-.menu-tooltip::before {
+.floating-tooltip::before {
   content: '';
   position: absolute;
-  left: -4px;
+  left: -5px;
   top: 50%;
   transform: translateY(-50%);
-  border: 4px solid transparent;
+  border: 5px solid transparent;
   border-right-color: var(--text-primary);
   border-left: none;
 }
 
-.menu-item:hover .menu-tooltip {
-  opacity: 1;
+@keyframes tooltip-fade-in {
+  from { opacity: 0; transform: translateY(-50%) translateX(-2px); }
+  to { opacity: 1; transform: translateY(-50%) translateX(0); }
 }
 </style>

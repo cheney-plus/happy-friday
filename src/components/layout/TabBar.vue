@@ -8,25 +8,26 @@
     </button>
 
     <div class="tabs-list">
-      <div
-        v-for="tab in tabStore.openedTabs"
-        :key="tab.id"
-        :class="['tab-item', { active: tabStore.activeTabId === tab.id }]"
-        role="tab"
-        @click="switchTab(tab)"
-      >
-        <component
-          v-if="tab.icon"
-          :is="iconMap[tab.icon]"
-          :size="14"
-          :stroke-width="2"
-          class="tab-icon"
-        />
-        <span class="tab-title">{{ t(tab.i18nKey) }}</span>
-        <button class="tab-close-btn" @click.stop="closeTab(tab.id)">
-          <X :size="12" :stroke-width="2" />
-        </button>
-      </div>
+      <template v-for="(tab, index) in tabStore.openedTabs" :key="tab.id">
+        <span v-if="index > 0" class="tab-divider">|</span>
+        <div
+          :class="['tab-item', { active: tabStore.activeTabId === tab.id }]"
+          role="tab"
+          @click="switchTab(tab)"
+        >
+          <component
+            v-if="tab.icon"
+            :is="iconMap[tab.icon]"
+            :size="14"
+            :stroke-width="2"
+            class="tab-icon"
+          />
+          <span class="tab-title">{{ t(tab.i18nKey) }}</span>
+          <button class="tab-close-btn" @click.stop="closeTab(tab.id)">
+            <X :size="12" :stroke-width="2" />
+          </button>
+        </div>
+      </template>
     </div>
 
     <div class="tab-bar-empty-space" data-tauri-drag-region></div>
@@ -127,10 +128,19 @@ const closeTab = (id: string) => {
 .tabs-list {
   display: flex;
   align-items: center;
-  gap: 1px;
+  gap: 6px;
   height: 100%;
   -webkit-app-region: no-drag;
   app-region: no-drag;
+  padding-left: 4px;
+}
+
+.tab-divider {
+  color: var(--border-color);
+  font-size: 12px;
+  line-height: 1;
+  user-select: none;
+  opacity: 0.7;
 }
 
 .tab-item {
@@ -141,21 +151,22 @@ const closeTab = (id: string) => {
   border-radius: 6px;
   cursor: pointer;
   color: var(--text-primary);
-  opacity: 0.5;
+  opacity: 0.7;
   transition: background-color 0.15s, opacity 0.15s;
   gap: 5px;
-  max-width: 180px;
+  max-width: 140px;
+  min-width: 80px;
+  font-weight: 600;
 }
 
 .tab-item:hover {
   background-color: var(--bg-hover);
-  opacity: 0.75;
+  opacity: 0.8;
 }
 
 .tab-item.active {
   background-color: var(--bg-primary);
   opacity: 1;
-  font-weight: 600;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
@@ -172,6 +183,7 @@ const closeTab = (id: string) => {
   white-space: nowrap;
   font-size: 12.5px;
   line-height: 1;
+  font-weight: inherit;
 }
 
 .tab-close-btn {
