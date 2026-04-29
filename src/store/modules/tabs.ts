@@ -45,7 +45,7 @@ export const useTabStore = defineStore('tabs', {
             const nextIndex = Math.max(0, index - 1);
             this.activeTabId = this.openedTabs[nextIndex].id;
           } else {
-            this.activeTabId = '';
+            this.addFridayTab();
           }
         }
       }
