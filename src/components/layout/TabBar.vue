@@ -1,13 +1,13 @@
 <template>
   <div class="tab-bar-container" data-tauri-drag-region>
-    <!-- macOS traffic lights placeholder margin -->
     <div class="mac-traffic-lights-spacer" data-tauri-drag-region></div>
     
-    <div class="tabs-list" data-tauri-drag-region>
+    <div class="tabs-list">
       <div 
         v-for="tab in tabStore.openedTabs" 
         :key="tab.id"
         :class="['tab-item', { active: tabStore.activeTabId === tab.id }]"
+        role="tab"
         @click="switchTab(tab)"
       >
         <span class="tab-icon" v-if="tab.icon">{{ tab.icon }}</span>
@@ -59,12 +59,14 @@ const closeTab = (id: string) => {
   height: 48px;
   background-color: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
-  padding-top: 12px; /* Extra space for macOS traffic lights */
+  padding-top: 12px;
   user-select: none;
+  -webkit-app-region: drag;
+  app-region: drag;
 }
 
 .mac-traffic-lights-spacer {
-  width: 72px; /* Space for the macOS red/yellow/green buttons */
+  width: 80px;
   height: 100%;
 }
 
@@ -73,6 +75,8 @@ const closeTab = (id: string) => {
   height: 36px;
   align-items: flex-end;
   gap: 4px;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 .tab-item {
