@@ -1,11 +1,5 @@
 <template>
-  <aside class="sidebar">
-    <div class="sidebar-top">
-      <div class="sidebar-avatar">
-        <UserRound :size="22" :stroke-width="1.8" />
-      </div>
-    </div>
-
+  <aside v-show="appStore.sidebarVisible" class="sidebar">
     <nav class="sidebar-menu">
       <router-link
         v-for="item in menuConfig"
@@ -14,7 +8,7 @@
         class="menu-item"
         active-class="active"
       >
-        <component :is="item.iconComponent" :size="20" :stroke-width="1.8" />
+        <component :is="item.iconComponent" :size="20" :stroke-width="1.6" />
         <span class="menu-tooltip">{{ t(item.i18nKey) }}</span>
       </router-link>
     </nav>
@@ -27,7 +21,7 @@
         class="menu-item"
         active-class="active"
       >
-        <component :is="item.iconComponent" :size="20" :stroke-width="1.8" />
+        <component :is="item.iconComponent" :size="20" :stroke-width="1.6" />
         <span class="menu-tooltip">{{ t(item.i18nKey) }}</span>
       </router-link>
     </div>
@@ -35,9 +29,9 @@
 </template>
 
 <script setup lang="ts">
+import { useAppStore } from '@/store';
 import { useI18n } from 'vue-i18n';
 import {
-  UserRound,
   FolderKanban,
   FileText,
   CalendarDays,
@@ -46,10 +40,10 @@ import {
   Settings
 } from 'lucide-vue-next';
 
+const appStore = useAppStore();
 const { t } = useI18n();
 
 const menuConfig = [
-  { key: 'user', path: '/user', iconComponent: UserRound, i18nKey: 'user.title' },
   { key: 'workspace', path: '/workspace', iconComponent: FolderKanban, i18nKey: 'workspace.title' },
   { key: 'note', path: '/note', iconComponent: FileText, i18nKey: 'note.title' },
   { key: 'schedule', path: '/schedule', iconComponent: CalendarDays, i18nKey: 'schedule.title' },
@@ -70,30 +64,8 @@ const bottomMenuConfig = [
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 0;
+  padding: 12px 0;
   flex-shrink: 0;
-}
-
-.sidebar-top {
-  padding: 8px 0 12px;
-}
-
-.sidebar-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: var(--bg-hover);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
-}
-
-.sidebar-avatar:hover {
-  background-color: var(--bg-active);
-  color: var(--text-primary);
 }
 
 .sidebar-menu {
@@ -101,15 +73,16 @@ const bottomMenuConfig = [
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
   width: 100%;
+  padding-top: 4px;
 }
 
 .sidebar-bottom {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
   width: 100%;
   padding-top: 8px;
 }
@@ -122,18 +95,20 @@ const bottomMenuConfig = [
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  color: var(--text-secondary);
-  transition: background-color 0.15s, color 0.15s;
+  color: var(--text-primary);
+  opacity: 0.55;
+  transition: background-color 0.15s, opacity 0.15s, color 0.15s;
 }
 
 .menu-item:hover {
   background-color: var(--bg-hover);
-  color: var(--text-primary);
+  opacity: 0.85;
 }
 
 .menu-item.active {
   background-color: var(--accent-light);
   color: var(--accent-color);
+  opacity: 1;
 }
 
 .menu-tooltip {

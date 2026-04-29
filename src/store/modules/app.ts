@@ -2,14 +2,14 @@ import { defineStore } from 'pinia';
 
 export const useAppStore = defineStore('app', {
   state: () => ({
-    sidebarCollapsed: true,
+    sidebarVisible: true,
     language: 'zh-CN',
     theme: 'light',
     loading: false
   }),
   actions: {
     toggleSidebar() {
-      this.sidebarCollapsed = !this.sidebarCollapsed;
+      this.sidebarVisible = !this.sidebarVisible;
     },
     setLanguage(lang: string) {
       this.language = lang;

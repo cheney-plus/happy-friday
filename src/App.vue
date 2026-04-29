@@ -28,7 +28,6 @@ const tabStore = useTabStore();
 const route = useRoute();
 
 const allMenus: { key: string; path: string; icon: IconName; i18nKey: string }[] = [
-  { key: 'user', path: '/user', icon: 'UserRound', i18nKey: 'user.title' },
   { key: 'workspace', path: '/workspace', icon: 'FolderKanban', i18nKey: 'workspace.title' },
   { key: 'note', path: '/note', icon: 'FileText', i18nKey: 'note.title' },
   { key: 'schedule', path: '/schedule', icon: 'CalendarDays', i18nKey: 'schedule.title' },

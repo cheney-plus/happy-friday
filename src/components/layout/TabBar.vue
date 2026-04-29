@@ -2,6 +2,11 @@
   <div class="tab-bar-container" data-tauri-drag-region>
     <div class="mac-traffic-lights-spacer" data-tauri-drag-region></div>
 
+    <button class="sidebar-toggle-btn" @click="appStore.toggleSidebar()">
+      <PanelLeftClose v-if="appStore.sidebarVisible" :size="16" :stroke-width="1.8" />
+      <PanelLeftOpen v-else :size="16" :stroke-width="1.8" />
+    </button>
+
     <div class="tabs-list">
       <div
         v-for="tab in tabStore.openedTabs"
@@ -14,7 +19,7 @@
           v-if="tab.icon"
           :is="iconMap[tab.icon]"
           :size="14"
-          :stroke-width="1.8"
+          :stroke-width="2"
           class="tab-icon"
         />
         <span class="tab-title">{{ t(tab.i18nKey) }}</span>
@@ -29,12 +34,13 @@
 </template>
 
 <script setup lang="ts">
-import { useTabStore, type Tab, type IconName } from '@/store';
+import { useTabStore, useAppStore, type Tab, type IconName } from '@/store';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import {
   X,
-  UserRound,
+  PanelLeftClose,
+  PanelLeftOpen,
   FolderKanban,
   FileText,
   CalendarDays,
@@ -45,11 +51,11 @@ import {
 import type { Component } from 'vue';
 
 const tabStore = useTabStore();
+const appStore = useAppStore();
 const { t } = useI18n();
 const router = useRouter();
 
 const iconMap: Record<IconName, Component> = {
-  UserRound,
   FolderKanban,
   FileText,
   CalendarDays,
@@ -95,6 +101,29 @@ const closeTab = (id: string) => {
   height: 100%;
 }
 
+.sidebar-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  opacity: 0.5;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background-color 0.15s, opacity 0.15s;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-btn:hover {
+  background-color: var(--bg-hover);
+  opacity: 0.85;
+}
+
 .tabs-list {
   display: flex;
   align-items: center;
@@ -111,21 +140,22 @@ const closeTab = (id: string) => {
   padding: 0 10px;
   border-radius: 6px;
   cursor: pointer;
-  color: var(--text-secondary);
-  transition: background-color 0.15s, color 0.15s;
+  color: var(--text-primary);
+  opacity: 0.5;
+  transition: background-color 0.15s, opacity 0.15s;
   gap: 5px;
   max-width: 180px;
 }
 
 .tab-item:hover {
   background-color: var(--bg-hover);
-  color: var(--text-primary);
+  opacity: 0.75;
 }
 
 .tab-item.active {
   background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-weight: 500;
+  opacity: 1;
+  font-weight: 600;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 

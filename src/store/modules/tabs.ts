@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 
-export type IconName = 'UserRound' | 'FolderKanban' | 'FileText' | 'CalendarDays' | 'Bot' | 'Clock' | 'Settings';
+export type IconName = 'FolderKanban' | 'FileText' | 'CalendarDays' | 'Bot' | 'Clock' | 'Settings';
 
 export interface Tab {
   id: string;

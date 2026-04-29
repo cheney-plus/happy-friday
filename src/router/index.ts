@@ -16,11 +16,6 @@ export const routes = [
     component: () => import('@/views/workspace/WorkspaceDetail.vue')
   },
   {
-    path: '/user',
-    name: 'user',
-    component: () => import('@/views/user/UserProfile.vue')
-  },
-  {
     path: '/note',
     name: 'note',
     component: () => import('@/views/note/NoteList.vue')
