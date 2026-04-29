@@ -110,6 +110,7 @@ const scrollToActiveTab = () => {
 };
 
 const scrollToEnd = () => {
+  hoveredTabId.value = '';
   nextTick(() => {
     if (!tabsScrollRef.value) return;
     tabsScrollRef.value.scrollTo({ left: tabsScrollRef.value.scrollWidth, behavior: 'smooth' });
@@ -273,7 +274,6 @@ const onWheel = (e: WheelEvent) => {
   gap: 5px;
   flex-shrink: 0;
   font-weight: 600;
-  user-select: none;
   overflow: hidden;
 }
 
@@ -301,9 +301,6 @@ const onWheel = (e: WheelEvent) => {
   font-size: 12.5px;
   line-height: 1;
   font-weight: inherit;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  user-select: none;
   -webkit-mask-image: linear-gradient(to right, #000 70%, transparent 100%);
   mask-image: linear-gradient(to right, #000 70%, transparent 100%);
 }

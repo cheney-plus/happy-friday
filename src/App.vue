@@ -114,7 +114,7 @@ onMounted(async () => {
   display: flex;
   flex: 1;
   overflow: hidden;
-  padding: 0 6px 6px 0;
+  padding: 0 6px 6px 6px;
 }
 
 .main-content {
