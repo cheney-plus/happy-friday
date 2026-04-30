@@ -1,6 +1,6 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 
-export const routes = [
+export const routes: RouteRecordRaw[] = [
   {
     path: '/',
     redirect: '/workspace'

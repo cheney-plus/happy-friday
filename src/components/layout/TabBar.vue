@@ -1,11 +1,12 @@
 <template>
   <div class="tab-bar-container" data-tauri-drag-region>
-    <div class="mac-traffic-lights-spacer" data-tauri-drag-region></div>
-
-    <button class="sidebar-toggle-btn" @click="appStore.toggleSidebar()">
-      <PanelLeftClose v-if="appStore.sidebarVisible" :size="16" :stroke-width="1.8" />
-      <PanelLeftOpen v-else :size="16" :stroke-width="1.8" />
-    </button>
+    <div v-if="isMac" class="mac-traffic-lights-spacer" data-tauri-drag-region></div>
+    <div class="tab-bar-left" :class="{ 'linux-left': isLinux }" data-tauri-drag-region>
+      <button class="sidebar-toggle-btn" @click="appStore.toggleSidebar()">
+        <PanelLeftClose v-if="appStore.sidebarVisible" :size="16" :stroke-width="1.8" />
+        <PanelLeftOpen v-else :size="16" :stroke-width="1.8" />
+      </button>
+    </div>
 
     <div class="tabs-area" ref="tabsAreaRef">
       <div class="tabs-scroll" ref="tabsScrollRef" @wheel.prevent="onWheel">
@@ -27,7 +28,7 @@
               class="tab-icon"
             />
             <span class="tab-title">{{ t(tab.i18nKey) }}</span>
-            <button v-show="hoveredTabId === tab.id" class="tab-close-btn" @click.stop="closeTab(tab.id)">
+            <button v-show="hoveredTabId === tab.id || tabStore.activeTabId === tab.id" class="tab-close-btn" @click.stop="closeTab(tab.id)">
               <X :size="12" :stroke-width="2" />
             </button>
           </div>
@@ -41,7 +42,19 @@
       <div class="tabs-area-spacer" data-tauri-drag-region></div>
     </div>
 
-    <div class="tab-bar-right-spacer" data-tauri-drag-region></div>
+    <div v-if="isLinux" class="linux-window-controls">
+      <button class="window-ctrl-btn minimize-btn" @click="handleMinimize">
+        <Minus :size="15" :stroke-width="1.5" />
+      </button>
+      <button class="window-ctrl-btn maximize-btn" @click="handleToggleMaximize">
+        <Square :size="13" :stroke-width="1.5" />
+      </button>
+      <button class="window-ctrl-btn close-btn" @click="handleClose">
+        <X :size="15" :stroke-width="1.5" />
+      </button>
+    </div>
+
+    <div v-else class="tab-bar-right-spacer" data-tauri-drag-region></div>
   </div>
 </template>
 
@@ -52,6 +65,8 @@ import { useRouter } from 'vue-router';
 import {
   X,
   Plus,
+  Minus,
+  Square,
   PanelLeftClose,
   PanelLeftOpen,
   FolderKanban,
@@ -61,13 +76,19 @@ import {
   Clock,
   Settings
 } from 'lucide-vue-next';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import type { Component } from 'vue';
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { isTauriEnvironment } from '@/config/menu';
 
 const tabStore = useTabStore();
 const appStore = useAppStore();
 const { t } = useI18n();
 const router = useRouter();
+
+const userAgent = navigator.userAgent || '';
+const isMac = /Macintosh/.test(userAgent);
+const isLinux = /Linux/.test(userAgent) && !/Android/.test(userAgent);
 
 const iconMap: Record<IconName, Component> = {
   FolderKanban,
@@ -99,7 +120,6 @@ const tabWidth = computed(() => {
 });
 
 const scrollToActiveTab = () => {
-  hoveredTabId.value = '';
   nextTick(() => {
     if (!tabsScrollRef.value) return;
     const activeEl = tabsScrollRef.value.querySelector('.tab-item.active') as HTMLElement;
@@ -110,7 +130,6 @@ const scrollToActiveTab = () => {
 };
 
 const scrollToEnd = () => {
-  hoveredTabId.value = '';
   nextTick(() => {
     if (!tabsScrollRef.value) return;
     tabsScrollRef.value.scrollTo({ left: tabsScrollRef.value.scrollWidth, behavior: 'smooth' });
@@ -146,6 +165,11 @@ onUnmounted(() => {
   }
 });
 
+const getTauriWindow = () => {
+  if (!isTauriEnvironment()) return null;
+  return getCurrentWindow();
+};
+
 const switchTab = (tab: Tab) => {
   if (tabStore.activeTabId !== tab.id) {
     tabStore.setActiveTab(tab.id);
@@ -155,13 +179,9 @@ const switchTab = (tab: Tab) => {
 
 const closeTab = (id: string) => {
   tabStore.removeTab(id);
-  if (tabStore.activeTabId) {
-    const activeTab = tabStore.openedTabs.find(t => t.id === tabStore.activeTabId);
-    if (activeTab) {
-      router.push(activeTab.path);
-    }
-  } else {
-    router.push('/workspace');
+  const activeTab = tabStore.openedTabs.find(t => t.id === tabStore.activeTabId);
+  if (activeTab) {
+    router.push(activeTab.path);
   }
 };
 
@@ -174,6 +194,18 @@ const onWheel = (e: WheelEvent) => {
   if (!tabsScrollRef.value) return;
   tabsScrollRef.value.scrollBy({ left: e.deltaY, behavior: 'auto' });
 };
+
+const handleMinimize = () => {
+  getTauriWindow()?.minimize();
+};
+
+const handleToggleMaximize = () => {
+  getTauriWindow()?.toggleMaximize();
+};
+
+const handleClose = () => {
+  getTauriWindow()?.close();
+};
 </script>
 
 <style scoped>
@@ -182,7 +214,6 @@ const onWheel = (e: WheelEvent) => {
   align-items: center;
   height: var(--tab-bar-height);
   background-color: var(--bg-secondary);
-  padding-left: 4px;
   -webkit-user-select: none;
   -moz-user-select: none;
   user-select: none;
@@ -195,6 +226,18 @@ const onWheel = (e: WheelEvent) => {
   width: 80px;
   height: 100%;
   flex-shrink: 0;
+}
+
+.tab-bar-left {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+.tab-bar-left.linux-left {
+  width: var(--sidebar-width);
 }
 
 .sidebar-toggle-btn {
@@ -359,5 +402,38 @@ const onWheel = (e: WheelEvent) => {
   flex-shrink: 0;
   min-width: 50px;
   height: 100%;
+}
+
+.linux-window-controls {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.window-ctrl-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  width: 32px;
+  height: 28px;
+  margin: 0 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background-color 0.15s;
+}
+
+.window-ctrl-btn:hover {
+  background-color: var(--bg-hover);
+}
+
+.close-btn:hover {
+  background-color: var(--window-close-hover);
+  color: var(--window-close-hover-text);
 }
 </style>

@@ -15,33 +15,34 @@
 <script setup lang="ts">
 import Sidebar from '@/components/layout/Sidebar.vue';
 import TabBar from '@/components/layout/TabBar.vue';
-import { onMounted, watch } from 'vue';
+import { onMounted, onUnmounted, watch } from 'vue';
 import { useAppStore, useTabStore } from '@/store';
 import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { setI18nLanguage } from '@/i18n';
 import { useRoute } from 'vue-router';
-import type { IconName } from '@/store';
+import { allMenuConfigs, isTauriEnvironment } from '@/config/menu';
 
 const appStore = useAppStore();
 const tabStore = useTabStore();
 const route = useRoute();
 
-const allMenus: { key: string; path: string; icon: IconName; i18nKey: string }[] = [
-  { key: 'workspace', path: '/workspace', icon: 'FolderKanban', i18nKey: 'workspace.title' },
-  { key: 'note', path: '/note', icon: 'FileText', i18nKey: 'note.title' },
-  { key: 'schedule', path: '/schedule', icon: 'CalendarDays', i18nKey: 'schedule.title' },
-  { key: 'history', path: '/history', icon: 'Clock', i18nKey: 'history.title' },
-  { key: 'settings', path: '/settings', icon: 'Settings', i18nKey: 'settings.title' },
-  { key: 'friday', path: '/friday', icon: 'Bot', i18nKey: 'friday.title' }
-];
+let unlistenConfig: UnlistenFn | null = null;
+
+watch(
+  () => appStore.theme,
+  (theme) => {
+    document.documentElement.setAttribute('data-theme', theme);
+  },
+  { immediate: true }
+);
 
 watch(
   () => route.path,
   (newPath) => {
     if (newPath && newPath !== '/') {
       const rootPath = '/' + newPath.split('/')[1];
-      const menu = allMenus.find(m => m.path === rootPath);
+      const menu = allMenuConfigs.find(m => m.path === rootPath);
 
       if (menu) {
         if (rootPath === '/friday') {
@@ -69,9 +70,9 @@ watch(
 );
 
 onMounted(async () => {
-  if ((window as any).__TAURI_INTERNALS__) {
+  if (isTauriEnvironment()) {
     try {
-      const config = await invoke<any>('get_config');
+      const config = await invoke<{ language?: string; theme?: string }>('get_config');
       if (config) {
         if (config.language) {
           appStore.setLanguage(config.language);
@@ -85,7 +86,7 @@ onMounted(async () => {
       console.error('Failed to load config:', error);
     }
 
-    listen('config-changed', (event: any) => {
+    unlistenConfig = await listen<{ language?: string; theme?: string }>('config-changed', (event) => {
       if (event.payload.language) {
         appStore.setLanguage(event.payload.language);
         setI18nLanguage(event.payload.language);
@@ -96,6 +97,13 @@ onMounted(async () => {
     });
   } else {
     console.log('Running in browser mode, Tauri APIs are disabled.');
+  }
+});
+
+onUnmounted(() => {
+  if (unlistenConfig) {
+    unlistenConfig();
+    unlistenConfig = null;
   }
 });
 </script>

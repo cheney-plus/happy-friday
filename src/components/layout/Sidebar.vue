@@ -7,7 +7,7 @@
 
       <nav class="sidebar-menu">
         <router-link
-          v-for="item in menuConfig"
+          v-for="item in sidebarMenuConfig"
           :key="item.key"
           :to="item.path"
           class="menu-item"
@@ -21,7 +21,7 @@
 
       <div class="sidebar-bottom">
         <router-link
-          v-for="item in bottomMenuConfig"
+          v-for="item in sidebarBottomMenuConfig"
           :key="item.key"
           :to="item.path"
           class="menu-item"
@@ -46,27 +46,10 @@
 import { reactive } from 'vue';
 import { useAppStore } from '@/store';
 import { useI18n } from 'vue-i18n';
-import {
-  FolderKanban,
-  FileText,
-  CalendarDays,
-  Clock,
-  Settings
-} from 'lucide-vue-next';
+import { sidebarMenuConfig, sidebarBottomMenuConfig } from '@/config/menu';
 
 const appStore = useAppStore();
 const { t } = useI18n();
-
-const menuConfig = [
-  { key: 'workspace', path: '/workspace', iconComponent: FolderKanban, i18nKey: 'workspace.title' },
-  { key: 'note', path: '/note', iconComponent: FileText, i18nKey: 'note.title' },
-  { key: 'schedule', path: '/schedule', iconComponent: CalendarDays, i18nKey: 'schedule.title' }
-];
-
-const bottomMenuConfig = [
-  { key: 'history', path: '/history', iconComponent: Clock, i18nKey: 'history.title' },
-  { key: 'settings', path: '/settings', iconComponent: Settings, i18nKey: 'settings.title' }
-];
 
 const tooltip = reactive({
   visible: false,

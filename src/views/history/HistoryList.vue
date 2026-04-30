@@ -1,9 +1,7 @@
 <template>
-  <div class="historylist">
+  <div class="history-list">
     <h1>{{ t('history.title') }}</h1>
     <p>{{ t('history.placeholder') }}</p>
-    <!-- TODO: i18n -->
-    <p v-if="$route.params.id">ID: {{ $route.params.id }}</p>
   </div>
 </template>
 
@@ -13,7 +11,7 @@ const { t } = useI18n();
 </script>
 
 <style scoped>
-.historylist {
+.history-list {
   padding: 24px;
 }
 </style>

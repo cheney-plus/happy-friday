@@ -1,8 +1,7 @@
 <template>
-  <div class="historydiff">
+  <div class="history-diff">
     <h1>{{ t('history.title') }}</h1>
     <p>{{ t('history.placeholder') }}</p>
-    <!-- TODO: i18n -->
     <p v-if="$route.params.id">ID: {{ $route.params.id }}</p>
   </div>
 </template>
@@ -13,7 +12,7 @@ const { t } = useI18n();
 </script>
 
 <style scoped>
-.historydiff {
+.history-diff {
   padding: 24px;
 }
 </style>
