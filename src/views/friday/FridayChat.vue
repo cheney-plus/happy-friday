@@ -146,7 +146,6 @@ const handleFeatureClick = (id: string) => {
 </script>
 
 <style scoped>
-<<<<<<< HEAD
 .friday-container {
   display: flex;
   justify-content: center;
