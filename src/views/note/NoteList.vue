@@ -1,17 +1,708 @@
 <template>
-  <div class="note-list">
-    <h1>{{ t('note.title') }}</h1>
-    <p>{{ t('note.placeholder') }}</p>
+  <div class="note-page">
+    <div class="note-sidebar">
+      <div class="sidebar-topbar">
+        <button class="topbar-btn" @click="$router.back()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <div class="topbar-actions">
+          <div class="new-note-btn" @click="createNewNote">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </div>
+          <button class="topbar-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="sidebar-header">
+        <div class="folder-trigger" ref="folderTriggerRef" @click.stop="toggleFolderMenu">
+          <span class="folder-name">{{ currentFolderName }}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+
+        <Teleport to="body">
+          <div v-if="folderMenuVisible" class="folder-dropdown" :style="folderMenuStyle">
+            <div
+              v-for="folder in folders"
+              :key="folder.id"
+              :class="['folder-item', { active: currentFolder === folder.id }]"
+              @click="selectFolder(folder.id)"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+              <div class="folder-info">
+                <span class="folder-item-name">{{ folder.name }}</span>
+                <span class="folder-count">{{ folder.count }}篇笔记</span>
+              </div>
+            </div>
+          </div>
+        </Teleport>
+      </div>
+
+      <div class="note-items" @contextmenu.prevent>
+        <div
+          v-for="note in notes"
+          :key="note.id"
+          :class="['note-item', { active: selectedNoteId === note.id }]"
+          @click="selectNote(note.id)"
+          @contextmenu.prevent="showContextMenu($event, note)"
+        >
+          <div class="note-title">{{ note.title }}</div>
+          <div class="note-meta">
+            <span class="note-time">{{ note.time }}</span>
+            <span class="note-subtitle">{{ note.subtitle }}</span>
+            <span v-if="note.extra" class="note-extra">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>
+              {{ note.extra }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <Teleport to="body">
+        <div v-if="contextMenu.visible" class="context-menu" :style="contextMenu.style">
+          <div class="context-item" @click="handleAction('addToKnowledge')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v8M8 12h8"></path></svg>
+            添加到知识库
+            <svg class="arrow-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </div>
+          <div class="context-item" @click="handleAction('moveToNotebook')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            移动到笔记本
+            <svg class="arrow-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </div>
+          <div class="context-item" @click="handleAction('duplicate')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            创建副本
+          </div>
+          <div class="context-divider"></div>
+          <div class="context-item danger" @click="handleAction('delete')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            删除
+          </div>
+        </div>
+      </Teleport>
+    </div>
+
+    <div class="note-editor-area">
+      <div v-if="selectedNote" class="editor-container">
+        <MilkdownProvider>
+          <NoteEditor
+            :key="selectedNoteId"
+            :defaultValue="selectedNote.content"
+            :placeholder="t('note.editorPlaceholder')"
+            @ready="onEditorReady"
+            @change="onEditorChange"
+          />
+        </MilkdownProvider>
+      </div>
+      <div v-else class="editor-empty">
+        <div class="empty-hint">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          <p>{{ t('note.selectToEdit') }}</p>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { reactive, ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { MilkdownProvider } from '@milkdown/vue';
+import { Crepe } from '@milkdown/crepe';
+import NoteEditor from './NoteEditor.vue';
+
+import '@milkdown/crepe/theme/common/style.css';
+import '@milkdown/crepe/theme/classic.css';
+
 const { t } = useI18n();
+
+interface Note {
+  id: number;
+  title: string;
+  time: string;
+  subtitle: string;
+  extra?: string;
+  content: string;
+}
+
+interface Folder {
+  id: string;
+  name: string;
+  count: number;
+}
+
+const currentFolder = ref('all');
+const selectedNoteId = ref(3);
+const folderMenuVisible = ref(false);
+const folderTriggerRef = ref<HTMLElement | null>(null);
+let crepeInstance: Crepe | null = null;
+
+const folders = reactive<Folder[]>([
+  { id: 'all', name: '全部笔记', count: 13 },
+  { id: '123', name: '123', count: 1 },
+  { id: 'freya', name: 'freya 项目', count: 1 }
+]);
+
+const currentFolderName = computed(() => {
+  const f = folders.find(f => f.id === currentFolder.value);
+  return f ? f.name : '全部';
+});
+
+const notes = reactive<Note[]>([
+  { id: 3, title: '项目规划', time: '26分钟前', subtitle: '无附加文本', content: '# 项目规划\n\n## 目标\n\n- 完成核心功能开发\n- 优化用户体验\n- 提升系统性能\n\n## 时间线\n\n第一阶段：基础架构搭建\n\n第二阶段：功能实现\n\n第三阶段：测试与优化' },
+  { id: 4, title: '会议记录', time: '26分钟前', subtitle: '无附加文本', content: '# 会议记录\n\n**日期**：2026年4月30日\n\n**参会人**：产品组全员\n\n## 议题\n\n1. 需求评审\n2. 进度同步\n3. 风险评估\n\n## 结论\n\n- 需求已确认\n- 下周进入开发阶段' },
+  { id: 5, title: '技术方案', time: '26分钟前', subtitle: '无附加文本', content: '# 技术方案\n\n## 架构设计\n\n采用微服务架构，主要模块包括：\n\n- **API 网关**：统一入口\n- **用户服务**：认证与授权\n- **业务服务**：核心业务逻辑\n\n## 技术选型\n\n| 模块 | 技术 | 版本 |\n|------|------|------|\n| 前端 | Vue 3 | 3.4 |\n| 后端 | Node.js | 20 |\n| 数据库 | PostgreSQL | 16 |' },
+  { id: 6, title: '学习笔记', time: '26分钟前', subtitle: '无附加文本', content: '# 学习笔记\n\n## TypeScript 高级类型\n\n### 条件类型\n\n```typescript\ntype IsString<T> = T extends string ? true : false;\n```\n\n### 映射类型\n\n```typescript\ntype Readonly<T> = {\n  readonly [P in keyof T]: T[P];\n};\n```\n\n> 类型系统是 TypeScript 最强大的特性之一。' },
+  { id: 7, title: '周报', time: '26分钟前', subtitle: '无附加文本', content: '# 本周工作总结\n\n## 已完成\n\n- [x] 用户模块重构\n- [x] API 文档更新\n- [x] 性能优化方案\n\n## 进行中\n\n- [ ] 编辑器集成\n- [ ] 数据迁移脚本\n\n## 下周计划\n\n1. 完成编辑器功能\n2. 开始集成测试\n3. 准备发布环境' },
+  { id: 8, title: '读书笔记', time: '26分钟前', subtitle: '无附加文本', content: '# 读书笔记\n\n## 《设计模式》\n\n### 观察者模式\n\n定义对象间一对多的依赖关系，当一个对象状态改变时，所有依赖它的对象都会收到通知。\n\n### 策略模式\n\n定义一系列算法，把它们一个个封装起来，并使它们可互相替换。\n\n---\n\n*阅读进度：第 7 章*' },
+  { id: 9, title: '需求文档', time: '26分钟前', subtitle: '无附加文本', content: '# 需求文档\n\n## 功能需求\n\n### FR-001 用户登录\n\n**描述**：用户可以通过邮箱和密码登录系统\n\n**优先级**：高\n\n### FR-002 笔记管理\n\n**描述**：用户可以创建、编辑、删除笔记\n\n**优先级**：高\n\n## 非功能需求\n\n- 响应时间 < 200ms\n- 支持 1000 并发用户' },
+  { id: 10, title: '灵感记录', time: '26分钟前', subtitle: '无附加文本', content: '# 灵感记录\n\n## 产品想法\n\n一个基于 AI 的智能笔记应用，能够：\n\n- 自动整理笔记内容\n- 智能推荐相关笔记\n- 生成摘要和思维导图\n\n## 设计灵感\n\n极简主义风格，注重内容本身，减少视觉干扰。\n\n> 好的工具应该是隐形的。' },
+  { id: 11, title: 'API 设计', time: '26分钟前', subtitle: '无附加文本', content: '# API 设计文档\n\n## 笔记相关接口\n\n### 获取笔记列表\n\n```\nGET /api/notes\n```\n\n### 创建笔记\n\n```\nPOST /api/notes\nBody: { title: string, content: string }\n```\n\n### 更新笔记\n\n```\nPUT /api/notes/:id\nBody: { title?: string, content?: string }\n```' },
+  { id: 12, title: '项目配置', time: '26分钟前', subtitle: '无附加文本', extra: '123', content: '# 项目配置\n\n## 环境变量\n\n| 变量名 | 说明 | 默认值 |\n|--------|------|--------|\n| PORT | 服务端口 | 3000 |\n| DB_URL | 数据库地址 | localhost |\n| REDIS_URL | 缓存地址 | localhost |\n\n## 构建命令\n\n- `pnpm dev` - 开发模式\n- `pnpm build` - 生产构建\n- `pnpm preview` - 预览构建结果' },
+  { id: 13, title: '代码规范', time: '26分钟前', subtitle: '无附加文本', content: '# 代码规范\n\n## 命名约定\n\n- **组件**：PascalCase（如 `NoteList`）\n- **函数**：camelCase（如 `getData`）\n- **常量**：UPPER_SNAKE_CASE（如 `MAX_COUNT`）\n\n## Git 规范\n\n提交信息格式：\n\n```\ntype(scope): description\n```\n\n类型包括：feat, fix, docs, style, refactor, test, chore' },
+  { id: 14, title: '部署方案', time: '26分钟前', subtitle: '无附加文本', content: '# 部署方案\n\n## 架构图\n\n```\n用户 → CDN → Nginx → Node.js → PostgreSQL\n                    ↓\n                  Redis\n```\n\n## 部署步骤\n\n1. 构建前端资源\n2. 推送 Docker 镜像\n3. 更新 K8s 配置\n4. 滚动更新服务\n5. 验证部署结果' },
+  { id: 15, title: '测试计划', time: '26分钟前', subtitle: '无附加文本', content: '# 测试计划\n\n## 单元测试\n\n覆盖核心业务逻辑，目标覆盖率 > 80%\n\n## 集成测试\n\n- API 接口测试\n- 数据库操作测试\n- 第三方服务 Mock 测试\n\n## E2E 测试\n\n模拟用户操作流程：\n\n1. 登录 → 创建笔记 → 编辑 → 保存\n2. 搜索笔记 → 查看结果\n3. 删除笔记 → 确认删除' }
+]);
+
+const selectedNote = computed(() => notes.find(n => n.id === selectedNoteId.value));
+
+const selectNote = (id: number) => {
+  selectedNoteId.value = id;
+};
+
+const createNewNote = () => {
+  const newId = Math.max(...notes.map(n => n.id)) + 1;
+  notes.unshift({
+    id: newId,
+    title: '新建笔记',
+    time: '刚刚',
+    subtitle: '无附加文本',
+    content: '# 新建笔记\n\n',
+  });
+  selectedNoteId.value = newId;
+};
+
+const onEditorReady = (crepe: Crepe) => {
+  crepeInstance = crepe;
+};
+
+const onEditorChange = (markdown: string) => {
+  if (selectedNote.value) {
+    const titleMatch = markdown.match(/^#\s+(.+)/m);
+    if (titleMatch) {
+      selectedNote.value.title = titleMatch[1].trim();
+    }
+    selectedNote.value.content = markdown;
+  }
+};
+
+let folderMenuStyle = reactive({ left: '0px', top: '0px' });
+
+const toggleFolderMenu = async () => {
+  if (folderMenuVisible.value) {
+    folderMenuVisible.value = false;
+    return;
+  }
+  await nextTick();
+  if (folderTriggerRef.value) {
+    const rect = folderTriggerRef.value.getBoundingClientRect();
+    folderMenuStyle.left = `${rect.left}px`;
+    folderMenuStyle.top = `${rect.bottom + 4}px`;
+  }
+  folderMenuVisible.value = true;
+};
+
+const selectFolder = (id: string) => {
+  currentFolder.value = id;
+  folderMenuVisible.value = false;
+};
+
+const contextMenu = reactive({
+  visible: false,
+  x: 0,
+  y: 0,
+  targetNote: null as Note | null,
+  get style() {
+    return {
+      left: `${this.x}px`,
+      top: `${this.y}px`
+    };
+  }
+});
+
+const showContextMenu = (e: MouseEvent, note: Note) => {
+  contextMenu.visible = true;
+  contextMenu.x = e.clientX;
+  contextMenu.y = e.clientY;
+  contextMenu.targetNote = note;
+};
+
+const hideContextMenu = () => {
+  contextMenu.visible = false;
+  contextMenu.targetNote = null;
+};
+
+const handleAction = (action: string) => {
+  if (action === 'delete' && contextMenu.targetNote) {
+    const idx = notes.findIndex(n => n.id === contextMenu.targetNote!.id);
+    if (idx !== -1) {
+      notes.splice(idx, 1);
+      if (selectedNoteId.value === contextMenu.targetNote!.id) {
+        selectedNoteId.value = notes.length > 0 ? notes[0].id : 0;
+      }
+    }
+  }
+  hideContextMenu();
+};
+
+const handleClickOutside = () => {
+  if (contextMenu.visible || folderMenuVisible.value) {
+    contextMenu.visible = false;
+    folderMenuVisible.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside);
+  crepeInstance = null;
+});
 </script>
 
 <style scoped>
-.note-list {
-  padding: 24px;
+.note-page {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+.note-sidebar {
+  width: 280px;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+}
+
+.sidebar-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px;
+}
+
+.topbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background-color: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.12s;
+}
+
+.topbar-btn:hover {
+  background-color: var(--bg-hover);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.new-note-btn {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.12s;
+  color: var(--text-primary);
+}
+
+.new-note-btn:hover {
+  background-color: var(--bg-hover);
+}
+
+.sidebar-header {
+  padding: 0 16px 8px;
+  position: relative;
+}
+
+.folder-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.12s;
+  user-select: none;
+}
+
+.folder-trigger:hover {
+  background-color: var(--bg-hover);
+}
+
+.folder-name {
+  line-height: 1;
+}
+
+.note-items {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.note-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background-color 0.12s;
+  border-left: 3px solid transparent;
+}
+
+.note-item:hover {
+  background-color: var(--bg-hover);
+}
+
+.note-item.active {
+  background-color: #f0f0ee;
+  border-left-color: var(--text-primary);
+}
+
+.note-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  line-height: 1.4;
+}
+
+.note-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.note-time {
+  white-space: nowrap;
+}
+
+.note-subtitle {
+  white-space: nowrap;
+}
+
+.note-extra {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--text-tertiary);
+}
+
+.note-editor-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+}
+
+.editor-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editor-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-tertiary);
+}
+
+.empty-hint svg {
+  opacity: 0.4;
+}
+
+.empty-hint p {
+  font-size: 14px;
+}
+</style>
+
+<style>
+.milkdown.crepe-dark {
+  --crepe-color-background: #1c1917;
+  --crepe-color-on-background: rgba(255, 255, 255, 0.92);
+  --crepe-color-surface: #232120;
+  --crepe-color-surface-low: #2a2725;
+  --crepe-color-on-surface: rgba(255, 255, 255, 0.85);
+  --crepe-color-on-surface-variant: rgba(255, 255, 255, 0.6);
+  --crepe-color-outline: rgba(255, 255, 255, 0.2);
+  --crepe-color-primary: #f4bd6f;
+  --crepe-color-secondary: #56442a;
+  --crepe-color-on-secondary: #fbdebc;
+  --crepe-color-inverse: #ede0d4;
+  --crepe-color-on-inverse: #362f27;
+  --crepe-color-inline-code: #ffb4ab;
+  --crepe-color-error: #ffb4ab;
+  --crepe-color-hover: #2e2b28;
+  --crepe-color-selected: #3b342b;
+  --crepe-color-inline-area: #3f3830;
+  --crepe-shadow-1: 0px 1px 2px 0px rgba(0, 0, 0, 0.6), 0px 1px 3px 1px rgba(0, 0, 0, 0.3);
+  --crepe-shadow-2: 0px 2px 6px 2px rgba(0, 0, 0, 0.4), 0px 1px 2px 0px rgba(0, 0, 0, 0.5);
+}
+
+.milkdown {
+  --crepe-color-background: transparent;
+  --crepe-shadow-1: none;
+  --crepe-shadow-2: none;
+}
+
+.milkdown .ProseMirror {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+.milkdown .ProseMirror h1 {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.milkdown .ProseMirror h2 {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-top: 24px;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.milkdown .ProseMirror h3 {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 20px;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+
+.milkdown .ProseMirror p {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.milkdown .ProseMirror blockquote {
+  border-left: 3px solid var(--accent-color);
+  padding-left: 16px;
+  margin: 12px 0;
+  color: var(--text-secondary);
+}
+
+.milkdown .ProseMirror code {
+  font-size: 13px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: var(--bg-hover);
+  color: var(--crepe-color-inline-code, #ba1a1a);
+}
+
+.milkdown .ProseMirror pre {
+  border-radius: 8px;
+  margin: 12px 0;
+}
+
+.milkdown .ProseMirror hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 24px 0;
+}
+
+.milkdown .ProseMirror a {
+  color: var(--accent-color);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.milkdown .ProseMirror img {
+  border-radius: 8px;
+  max-width: 100%;
+}
+
+.milkdown .ProseMirror ul,
+.milkdown .ProseMirror ol {
+  padding-left: 24px;
+  margin: 8px 0;
+}
+
+.milkdown .ProseMirror li {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--text-primary);
+}
+
+.milkdown .ProseMirror .tableWrapper {
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 12px 0;
+}
+
+.milkdown .ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.milkdown .ProseMirror th,
+.milkdown .ProseMirror td {
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.milkdown .ProseMirror th {
+  background-color: var(--bg-hover);
+  font-weight: 600;
+}
+
+.context-menu {
+  position: fixed;
+  z-index: 99999;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.08);
+  padding: 6px 0;
+  min-width: 180px;
+  animation: context-menu-in 0.1s ease-out;
+}
+
+@keyframes context-menu-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.context-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.1s;
+  user-select: none;
+}
+
+.context-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.context-item.danger {
+  color: #ef4444;
+}
+
+.context-item svg:first-child {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.context-item.danger svg:first-child {
+  color: #ef4444;
+}
+
+.arrow-right {
+  margin-left: auto;
+  color: var(--text-tertiary) !important;
+}
+
+.context-divider {
+  height: 1px;
+  background-color: rgba(0, 0, 0, 0.06);
+  margin: 4px 12px;
+}
+
+.folder-dropdown {
+  position: fixed;
+  z-index: 99998;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.14), 0 0 1px rgba(0, 0, 0, 0.08);
+  padding: 6px 0;
+  min-width: 220px;
+  animation: folder-drop-in 0.15s ease-out;
+}
+
+@keyframes folder-drop-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.folder-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background-color 0.1s;
+  user-select: none;
+}
+
+.folder-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.folder-item.active {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.folder-item svg {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.folder-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.folder-item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.folder-count {
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 </style>
