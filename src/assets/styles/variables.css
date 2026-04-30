@@ -13,6 +13,8 @@
   --sidebar-width: 56px;
   --tab-bar-height: 46px;
   --content-radius: 10px;
+  --window-close-hover: #e81123;
+  --window-close-hover-text: #ffffff;
 }
 
 [data-theme='dark'] {
@@ -27,4 +29,6 @@
   --border-color: #3f3f46;
   --accent-color: #3b82f6;
   --accent-light: rgba(59, 130, 246, 0.15);
+  --window-close-hover: #e81123;
+  --window-close-hover-text: #ffffff;
 }

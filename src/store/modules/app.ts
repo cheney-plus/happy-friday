@@ -4,7 +4,7 @@ export const useAppStore = defineStore('app', {
   state: () => ({
     sidebarVisible: true,
     language: 'zh-CN',
-    theme: 'light',
+    theme: 'light' as 'light' | 'dark',
     loading: false
   }),
   actions: {
@@ -15,8 +15,7 @@ export const useAppStore = defineStore('app', {
       this.language = lang;
     },
     setTheme(theme: string) {
-      this.theme = theme;
-      document.documentElement.setAttribute('data-theme', theme);
+      this.theme = theme as 'light' | 'dark';
     }
   }
 });

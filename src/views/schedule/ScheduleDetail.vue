@@ -1,8 +1,7 @@
 <template>
-  <div class="scheduledetail">
+  <div class="schedule-detail">
     <h1>{{ t('schedule.title') }}</h1>
     <p>{{ t('schedule.placeholder') }}</p>
-    <!-- TODO: i18n -->
     <p v-if="$route.params.id">ID: {{ $route.params.id }}</p>
   </div>
 </template>
@@ -13,7 +12,7 @@ const { t } = useI18n();
 </script>
 
 <style scoped>
-.scheduledetail {
+.schedule-detail {
   padding: 24px;
 }
 </style>

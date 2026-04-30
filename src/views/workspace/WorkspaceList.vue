@@ -1,9 +1,7 @@
 <template>
-  <div class="workspacelist">
+  <div class="workspace-list">
     <h1>{{ t('workspace.title') }}</h1>
     <p>{{ t('workspace.placeholder') }}</p>
-    <!-- TODO: i18n -->
-    <p v-if="$route.params.id">ID: {{ $route.params.id }}</p>
   </div>
 </template>
 
@@ -13,7 +11,7 @@ const { t } = useI18n();
 </script>
 
 <style scoped>
-.workspacelist {
+.workspace-list {
   padding: 24px;
 }
 </style>

@@ -1,4 +1,8 @@
 {
-  "title": "settings模块",
-  "placeholder": "这是settings页面的占位内容"
+  "title": "设置",
+  "placeholder": "这是settings页面的占位内容",
+  "theme": "主题",
+  "themeLight": "浅色",
+  "themeDark": "深色",
+  "language": "语言"
 }

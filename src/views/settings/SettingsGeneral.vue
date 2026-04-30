@@ -1,18 +1,18 @@
 <template>
-  <div class="settingsgeneral">
+  <div class="settings-general">
     <h1>{{ t('settings.title') }}</h1>
     <p>{{ t('settings.placeholder') }}</p>
-    
+
     <div class="settings-section">
-      <h3>Theme</h3>
+      <h3>{{ t('settings.theme') }}</h3>
       <select v-model="appStore.theme" @change="handleThemeChange">
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
+        <option value="light">{{ t('settings.themeLight') }}</option>
+        <option value="dark">{{ t('settings.themeDark') }}</option>
       </select>
     </div>
 
     <div class="settings-section">
-      <h3>Language</h3>
+      <h3>{{ t('settings.language') }}</h3>
       <select v-model="appStore.language" @change="handleLanguageChange">
         <option value="zh-CN">简体中文</option>
         <option value="en-US">English</option>
@@ -26,12 +26,13 @@ import { useI18n } from 'vue-i18n';
 import { useAppStore } from '@/store';
 import { setI18nLanguage } from '@/i18n';
 import { invoke } from '@tauri-apps/api/core';
+import { isTauriEnvironment } from '@/config/menu';
 
 const { t } = useI18n();
 const appStore = useAppStore();
 
 const saveConfig = async () => {
-  if ((window as any).__TAURI_INTERNALS__) {
+  if (isTauriEnvironment()) {
     try {
       await invoke('update_config', {
         config: {
@@ -58,7 +59,7 @@ const handleLanguageChange = () => {
 </script>
 
 <style scoped>
-.settingsgeneral {
+.settings-general {
   padding: 24px;
 }
 
