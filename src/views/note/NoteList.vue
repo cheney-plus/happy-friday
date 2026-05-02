@@ -87,15 +87,12 @@
 
     <div class="note-editor-area">
       <div v-if="selectedNote" class="editor-container">
-        <MilkdownProvider>
-          <NoteEditor
-            :key="selectedNoteId"
-            :defaultValue="selectedNote.content"
-            :placeholder="t('note.editorPlaceholder')"
-            @ready="onEditorReady"
-            @change="onEditorChange"
-          />
-        </MilkdownProvider>
+        <NoteEditor
+          :key="selectedNoteId"
+          v-model="selectedNote.content"
+          :placeholder="t('note.editorPlaceholder')"
+          @change="onEditorChange"
+        />
       </div>
       <div v-else class="editor-empty">
         <div class="empty-hint">
@@ -110,12 +107,7 @@
 <script setup lang="ts">
 import { reactive, ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { MilkdownProvider } from '@milkdown/vue';
-import { Crepe } from '@milkdown/crepe';
 import NoteEditor from './NoteEditor.vue';
-
-import '@milkdown/crepe/theme/common/style.css';
-import '@milkdown/crepe/theme/classic.css';
 
 const { t } = useI18n();
 
@@ -138,7 +130,6 @@ const currentFolder = ref('all');
 const selectedNoteId = ref(3);
 const folderMenuVisible = ref(false);
 const folderTriggerRef = ref<HTMLElement | null>(null);
-let crepeInstance: Crepe | null = null;
 
 const folders = reactive<Folder[]>([
   { id: 'all', name: '全部笔记', count: 13 },
@@ -185,17 +176,12 @@ const createNewNote = () => {
   selectedNoteId.value = newId;
 };
 
-const onEditorReady = (crepe: Crepe) => {
-  crepeInstance = crepe;
-};
-
-const onEditorChange = (markdown: string) => {
+const onEditorChange = (content: string) => {
   if (selectedNote.value) {
-    const titleMatch = markdown.match(/^#\s+(.+)/m);
+    const titleMatch = content.match(/^#\s+(.+)/m);
     if (titleMatch) {
       selectedNote.value.title = titleMatch[1].trim();
     }
-    selectedNote.value.content = markdown;
   }
 };
 
@@ -271,7 +257,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside);
-  crepeInstance = null;
 });
 </script>
 
@@ -453,256 +438,5 @@ onBeforeUnmount(() => {
 
 .empty-hint p {
   font-size: 14px;
-}
-</style>
-
-<style>
-.milkdown.crepe-dark {
-  --crepe-color-background: #1c1917;
-  --crepe-color-on-background: rgba(255, 255, 255, 0.92);
-  --crepe-color-surface: #232120;
-  --crepe-color-surface-low: #2a2725;
-  --crepe-color-on-surface: rgba(255, 255, 255, 0.85);
-  --crepe-color-on-surface-variant: rgba(255, 255, 255, 0.6);
-  --crepe-color-outline: rgba(255, 255, 255, 0.2);
-  --crepe-color-primary: #f4bd6f;
-  --crepe-color-secondary: #56442a;
-  --crepe-color-on-secondary: #fbdebc;
-  --crepe-color-inverse: #ede0d4;
-  --crepe-color-on-inverse: #362f27;
-  --crepe-color-inline-code: #ffb4ab;
-  --crepe-color-error: #ffb4ab;
-  --crepe-color-hover: #2e2b28;
-  --crepe-color-selected: #3b342b;
-  --crepe-color-inline-area: #3f3830;
-  --crepe-shadow-1: 0px 1px 2px 0px rgba(0, 0, 0, 0.6), 0px 1px 3px 1px rgba(0, 0, 0, 0.3);
-  --crepe-shadow-2: 0px 2px 6px 2px rgba(0, 0, 0, 0.4), 0px 1px 2px 0px rgba(0, 0, 0, 0.5);
-}
-
-.milkdown {
-  --crepe-color-background: transparent;
-  --crepe-shadow-1: none;
-  --crepe-shadow-2: none;
-}
-
-.milkdown .ProseMirror {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-}
-
-.milkdown .ProseMirror h1 {
-  font-size: 32px;
-  font-weight: 700;
-  line-height: 1.3;
-  margin-bottom: 8px;
-  color: var(--text-primary);
-}
-
-.milkdown .ProseMirror h2 {
-  font-size: 24px;
-  font-weight: 600;
-  line-height: 1.35;
-  margin-top: 24px;
-  margin-bottom: 8px;
-  color: var(--text-primary);
-}
-
-.milkdown .ProseMirror h3 {
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 1.4;
-  margin-top: 20px;
-  margin-bottom: 6px;
-  color: var(--text-primary);
-}
-
-.milkdown .ProseMirror p {
-  font-size: 15px;
-  line-height: 1.75;
-  color: var(--text-primary);
-  margin-bottom: 4px;
-}
-
-.milkdown .ProseMirror blockquote {
-  border-left: 3px solid var(--accent-color);
-  padding-left: 16px;
-  margin: 12px 0;
-  color: var(--text-secondary);
-}
-
-.milkdown .ProseMirror code {
-  font-size: 13px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background-color: var(--bg-hover);
-  color: var(--crepe-color-inline-code, #ba1a1a);
-}
-
-.milkdown .ProseMirror pre {
-  border-radius: 8px;
-  margin: 12px 0;
-}
-
-.milkdown .ProseMirror hr {
-  border: none;
-  border-top: 1px solid var(--border-color);
-  margin: 24px 0;
-}
-
-.milkdown .ProseMirror a {
-  color: var(--accent-color);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.milkdown .ProseMirror img {
-  border-radius: 8px;
-  max-width: 100%;
-}
-
-.milkdown .ProseMirror ul,
-.milkdown .ProseMirror ol {
-  padding-left: 24px;
-  margin: 8px 0;
-}
-
-.milkdown .ProseMirror li {
-  font-size: 15px;
-  line-height: 1.75;
-  color: var(--text-primary);
-}
-
-.milkdown .ProseMirror .tableWrapper {
-  border-radius: 8px;
-  overflow: hidden;
-  margin: 12px 0;
-}
-
-.milkdown .ProseMirror table {
-  border-collapse: collapse;
-  width: 100%;
-}
-
-.milkdown .ProseMirror th,
-.milkdown .ProseMirror td {
-  border: 1px solid var(--border-color);
-  padding: 8px 12px;
-  text-align: left;
-}
-
-.milkdown .ProseMirror th {
-  background-color: var(--bg-hover);
-  font-weight: 600;
-}
-
-.context-menu {
-  position: fixed;
-  z-index: 99999;
-  background-color: white;
-  border-radius: 10px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.08);
-  padding: 6px 0;
-  min-width: 180px;
-  animation: context-menu-in 0.1s ease-out;
-}
-
-@keyframes context-menu-in {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.context-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 16px;
-  font-size: 13px;
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: background-color 0.1s;
-  user-select: none;
-}
-
-.context-item:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-.context-item.danger {
-  color: #ef4444;
-}
-
-.context-item svg:first-child {
-  flex-shrink: 0;
-  color: var(--text-secondary);
-}
-
-.context-item.danger svg:first-child {
-  color: #ef4444;
-}
-
-.arrow-right {
-  margin-left: auto;
-  color: var(--text-tertiary) !important;
-}
-
-.context-divider {
-  height: 1px;
-  background-color: rgba(0, 0, 0, 0.06);
-  margin: 4px 12px;
-}
-
-.folder-dropdown {
-  position: fixed;
-  z-index: 99998;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.14), 0 0 1px rgba(0, 0, 0, 0.08);
-  padding: 6px 0;
-  min-width: 220px;
-  animation: folder-drop-in 0.15s ease-out;
-}
-
-@keyframes folder-drop-in {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.folder-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  cursor: pointer;
-  transition: background-color 0.1s;
-  user-select: none;
-}
-
-.folder-item:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-.folder-item.active {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.folder-item svg {
-  flex-shrink: 0;
-  color: var(--text-secondary);
-}
-
-.folder-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.folder-item-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.folder-count {
-  font-size: 12px;
-  color: var(--text-tertiary);
 }
 </style>

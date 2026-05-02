@@ -1,89 +1,52 @@
 <template>
   <div class="editor-wrapper">
-    <Milkdown />
+    <textarea
+      ref="textareaRef"
+      class="note-textarea"
+      :value="modelValue"
+      :placeholder="placeholder"
+      @input="onInput"
+    ></textarea>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, nextTick, watch } from 'vue';
-import { Milkdown, useEditor } from '@milkdown/vue';
-import { Crepe, CrepeFeature } from '@milkdown/crepe';
-import { useAppStore } from '@/store';
+import { ref, onMounted, nextTick, watch } from 'vue';
 
 const props = withDefaults(defineProps<{
   placeholder?: string;
-  defaultValue?: string;
+  modelValue?: string;
 }>(), {
   placeholder: 'Start writing...',
-  defaultValue: '',
+  modelValue: '',
 });
 
 const emit = defineEmits<{
-  ready: [crepe: Crepe];
-  change: [markdown: string];
+  'update:modelValue': [value: string];
+  change: [value: string];
 }>();
 
-const appStore = useAppStore();
-const isDark = () => appStore.theme === 'dark';
+const textareaRef = ref<HTMLTextAreaElement | null>(null);
 
-const { loading } = useEditor((root) => {
-  const crepe = new Crepe({
-    root,
-    defaultValue: props.defaultValue || '',
-    features: {
-      [CrepeFeature.CodeMirror]: true,
-      [CrepeFeature.ListItem]: true,
-      [CrepeFeature.LinkTooltip]: true,
-      [CrepeFeature.Cursor]: true,
-      [CrepeFeature.ImageBlock]: true,
-      [CrepeFeature.BlockEdit]: true,
-      [CrepeFeature.Toolbar]: true,
-      [CrepeFeature.Placeholder]: true,
-      [CrepeFeature.Table]: true,
-      [CrepeFeature.Latex]: true,
-      [CrepeFeature.TopBar]: false,
-    },
-    featureConfigs: {
-      [CrepeFeature.Placeholder]: {
-        text: props.placeholder,
-        mode: 'doc',
-      },
-    },
-  });
+const onInput = (e: Event) => {
+  const value = (e.target as HTMLTextAreaElement).value;
+  emit('update:modelValue', value);
+  emit('change', value);
+};
 
-  crepe.on((listener) => {
-    listener.markdownUpdated((_ctx, markdown) => {
-      emit('change', markdown);
-    });
-  });
+const autoResize = () => {
+  const el = textareaRef.value;
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+};
 
-  nextTick(() => {
-    emit('ready', crepe);
-  });
-
-  return crepe;
-});
-
-watch(loading, (isLoading) => {
-  if (!isLoading && isDark()) {
-    nextTick(() => {
-      const milkdownEl = document.querySelector('.milkdown');
-      if (milkdownEl) {
-        milkdownEl.classList.add('crepe-dark');
-      }
-    });
-  }
+watch(() => props.modelValue, () => {
+  nextTick(autoResize);
 });
 
 onMounted(() => {
-  if (isDark()) {
-    nextTick(() => {
-      const milkdownEl = document.querySelector('.milkdown');
-      if (milkdownEl) {
-        milkdownEl.classList.add('crepe-dark');
-      }
-    });
-  }
+  nextTick(autoResize);
 });
 </script>
 
@@ -94,17 +57,21 @@ onMounted(() => {
   padding: 0 24px;
 }
 
-.editor-wrapper :deep(.milkdown) {
-  min-height: 100%;
-  outline: none;
-}
-
-.editor-wrapper :deep(.ProseMirror) {
-  padding: 24px 0;
+.note-textarea {
+  width: 100%;
   min-height: 300px;
+  padding: 24px 0;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
-.editor-wrapper :deep(.milkdown .editor) {
-  padding: 0;
+.note-textarea::placeholder {
+  color: var(--text-tertiary);
 }
 </style>
