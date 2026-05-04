@@ -66,7 +66,7 @@ onBeforeUnmount(() => {
 .editor-wrapper {
   flex: 1;
   overflow-y: auto;
-  padding: 0 24px;
+  padding: 0 32px 0 48px;
 }
 
 .editor-wrapper :deep(.bn-container) {
@@ -74,7 +74,7 @@ onBeforeUnmount(() => {
 }
 
 .editor-wrapper :deep(.bn-editor) {
-  padding: 24px 0;
+  padding: 48px 0 24px;
   font-size: 15px;
   line-height: 1.75;
 }
