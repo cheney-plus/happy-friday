@@ -1,20 +1,26 @@
 <template>
   <div class="note-page">
-    <div class="note-sidebar">
-      <div class="sidebar-topbar">
-        <button class="topbar-btn" @click="$router.back()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
-        </button>
-        <div class="topbar-actions">
-          <div class="new-note-btn" @click="createNewNote">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </div>
-          <button class="topbar-btn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    <div
+      class="note-sidebar"
+      :class="{ collapsed: sidebarCollapsed, 'is-resizing': isResizing }"
+      :style="{ width: sidebarCollapsed ? '0px' : sidebarWidth + 'px' }"
+      @selectstart.prevent
+    >
+      <div class="sidebar-inner">
+        <div class="sidebar-topbar">
+          <button class="topbar-btn" @click="toggleSidebar" :title="sidebarCollapsed ? '' : '收起侧边栏'">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
           </button>
+          <div class="topbar-actions">
+            <div class="new-note-btn" @click="createNewNote">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+            <button class="topbar-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </button>
+          </div>
         </div>
-      </div>
 
       <div class="sidebar-header">
         <div class="folder-trigger" ref="folderTriggerRef" @click.stop="toggleFolderMenu">
@@ -83,7 +89,23 @@
           </div>
         </div>
       </Teleport>
+      </div>
     </div>
+
+    <div
+      v-if="!sidebarCollapsed"
+      class="sidebar-resize-handle"
+      @mousedown="onResizeStart"
+    ></div>
+
+    <button
+      v-if="sidebarCollapsed"
+      class="sidebar-expand-btn"
+      @click="toggleSidebar"
+      title="展开侧边栏"
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+    </button>
 
     <div class="note-editor-area">
       <div v-if="selectedNote" class="editor-container">
@@ -130,6 +152,43 @@ const currentFolder = ref('all');
 const selectedNoteId = ref(3);
 const folderMenuVisible = ref(false);
 const folderTriggerRef = ref<HTMLElement | null>(null);
+
+const SIDEBAR_MIN_WIDTH = 200;
+const SIDEBAR_MAX_WIDTH = 280;
+const SIDEBAR_DEFAULT_WIDTH = 200;
+const sidebarWidth = ref(SIDEBAR_DEFAULT_WIDTH);
+const sidebarCollapsed = ref(false);
+const isResizing = ref(false);
+
+const toggleSidebar = () => {
+  sidebarCollapsed.value = !sidebarCollapsed.value;
+};
+
+const onResizeStart = (e: MouseEvent) => {
+  e.preventDefault();
+  isResizing.value = true;
+  const startX = e.clientX;
+  const startWidth = sidebarWidth.value;
+
+  const onResizeMove = (moveEvent: MouseEvent) => {
+    const delta = moveEvent.clientX - startX;
+    const newWidth = Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, startWidth + delta));
+    sidebarWidth.value = newWidth;
+  };
+
+  const onResizeEnd = () => {
+    isResizing.value = false;
+    document.removeEventListener('mousemove', onResizeMove);
+    document.removeEventListener('mouseup', onResizeEnd);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  };
+
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+  document.addEventListener('mousemove', onResizeMove);
+  document.addEventListener('mouseup', onResizeEnd);
+};
 
 const folders = reactive<Folder[]>([
   { id: 'all', name: '全部笔记', count: 13 },
@@ -268,12 +327,64 @@ onBeforeUnmount(() => {
 }
 
 .note-sidebar {
-  width: 280px;
-  min-width: 280px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border-color);
   background-color: var(--bg-primary);
+  position: relative;
+  overflow: hidden;
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.note-sidebar :deep(*) {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.note-sidebar :deep(::selection) {
+  background: transparent;
+}
+
+.note-sidebar.is-resizing {
+  transition: none;
+}
+
+.note-sidebar.collapsed {
+  width: 0 !important;
+}
+
+.sidebar-inner {
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sidebar-expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background-color: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.12s;
+  flex-shrink: 0;
+  margin: 12px 0 0 12px;
+}
+
+.sidebar-expand-btn:hover {
+  background-color: var(--bg-hover);
+}
+
+.sidebar-resize-handle {
+  width: 6px;
+  cursor: col-resize;
+  flex-shrink: 0;
 }
 
 .sidebar-topbar {
@@ -353,6 +464,37 @@ onBeforeUnmount(() => {
   flex: 1;
   overflow-y: auto;
   padding: 4px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+.note-items::-webkit-scrollbar {
+  width: 5px;
+}
+
+.note-items::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.note-items::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+}
+
+.note-items::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.25);
+}
+
+[data-theme='dark'] .note-items {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+[data-theme='dark'] .note-items::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme='dark'] .note-items::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.25);
 }
 
 .note-item {
