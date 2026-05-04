@@ -1,17 +1,12 @@
 <template>
-  <div class="editor-wrapper">
-    <textarea
-      ref="textareaRef"
-      class="note-textarea"
-      :value="modelValue"
-      :placeholder="placeholder"
-      @input="onInput"
-    ></textarea>
-  </div>
+  <div ref="containerRef" class="editor-wrapper"></div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { createRoot, Root } from 'react-dom/client';
+import React from 'react';
+import BlockNoteEditorComponent from './BlockNoteEditor';
 
 const props = withDefaults(defineProps<{
   placeholder?: string;
@@ -26,27 +21,44 @@ const emit = defineEmits<{
   change: [value: string];
 }>();
 
-const textareaRef = ref<HTMLTextAreaElement | null>(null);
+const containerRef = ref<HTMLDivElement | null>(null);
+let root: Root | null = null;
 
-const onInput = (e: Event) => {
-  const value = (e.target as HTMLTextAreaElement).value;
-  emit('update:modelValue', value);
-  emit('change', value);
+const handleChange = (markdown: string) => {
+  emit('update:modelValue', markdown);
+  emit('change', markdown);
 };
 
-const autoResize = () => {
-  const el = textareaRef.value;
-  if (!el) return;
-  el.style.height = 'auto';
-  el.style.height = el.scrollHeight + 'px';
+const renderEditor = () => {
+  if (!containerRef.value) return;
+  if (!root) {
+    root = createRoot(containerRef.value);
+  }
+  root.render(
+    React.createElement(BlockNoteEditorComponent, {
+      initialContent: props.modelValue,
+      placeholder: props.placeholder,
+      onChange: handleChange,
+    })
+  );
 };
 
 watch(() => props.modelValue, () => {
-  nextTick(autoResize);
+});
+
+watch(() => props.placeholder, () => {
+  renderEditor();
 });
 
 onMounted(() => {
-  nextTick(autoResize);
+  renderEditor();
+});
+
+onBeforeUnmount(() => {
+  if (root) {
+    root.unmount();
+    root = null;
+  }
 });
 </script>
 
@@ -57,21 +69,17 @@ onMounted(() => {
   padding: 0 24px;
 }
 
-.note-textarea {
-  width: 100%;
-  min-height: 300px;
-  padding: 24px 0;
-  border: none;
-  outline: none;
-  resize: none;
-  background: transparent;
-  font-size: 15px;
-  line-height: 1.75;
-  color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+.editor-wrapper :deep(.bn-container) {
+  flex: 1;
 }
 
-.note-textarea::placeholder {
-  color: var(--text-tertiary);
+.editor-wrapper :deep(.bn-editor) {
+  padding: 24px 0;
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.editor-wrapper :deep(.bn-block-content) {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 </style>
