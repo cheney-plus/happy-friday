@@ -25,6 +25,8 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { useCallback, useEffect, useRef } from "react";
 import "./blocknote-editor.css";
 
+const MOUSE_OUTSIDE_CLASS = "bn-editor-mouse-outside";
+
 const deepseekModel = createOpenAICompatible({
   name: "deepseek",
   apiKey: "sk-8cc48d1ef9794ee9ae0a8f71d2995b4b",
@@ -85,8 +87,34 @@ export default function BlockNoteEditorComponent({
     }
   }, [onChange, editor]);
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const wrapperElement = wrapperRef.current;
+      const portalElement = editor?.portalElement;
+      if (!wrapperElement) return;
+
+      const target = e.target as HTMLElement;
+      const isInsideWrapper = wrapperElement.contains(target);
+      const isInsidePortal = portalElement?.contains(target) ?? false;
+
+      if (isInsideWrapper || isInsidePortal) {
+        document.body.classList.remove(MOUSE_OUTSIDE_CLASS);
+      } else {
+        document.body.classList.add(MOUSE_OUTSIDE_CLASS);
+      }
+    };
+
+    document.addEventListener("mousemove", handleMouseMove, true);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove, true);
+      document.body.classList.remove(MOUSE_OUTSIDE_CLASS);
+    };
+  }, [editor]);
+
   return (
-    <div className="bn-editor-custom" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div ref={wrapperRef} className="bn-editor-custom" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <BlockNoteView
         editor={editor}
         formattingToolbar={false}

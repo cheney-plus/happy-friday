@@ -62,3 +62,7 @@
 .bn-editor-custom [data-prev-level="6"] {
   --prev-level: 1em;
 }
+
+body.bn-editor-mouse-outside .bn-side-menu {
+  visibility: hidden !important;
+}
