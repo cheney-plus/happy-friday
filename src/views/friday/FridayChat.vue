@@ -70,7 +70,7 @@
                 </svg>
               </button>
 
-              <button class="send-btn" :class="{ active: inputText.trim() }">
+              <button class="send-btn" :class="{ active: inputText.trim() }" @click="handleSend">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="22" y1="2" x2="11" y2="13"></line>
                   <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
@@ -169,7 +169,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
 const { t } = useI18n();
 const inputText = ref('');
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
@@ -245,6 +247,12 @@ const selectModel = (modelId: string) => {
 const closeAllDropdowns = () => {
   showModeDropdown.value = false;
   showDsDropdown.value = false;
+};
+
+const handleSend = () => {
+  const text = inputText.value.trim();
+  if (!text) return;
+  router.push({ name: 'friday-chat', query: { q: text } });
 };
 
 onMounted(() => {

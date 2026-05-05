@@ -56,6 +56,11 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/friday/FridayChat.vue')
   },
   {
+    path: '/friday/chat',
+    name: 'friday-chat',
+    component: () => import('@/views/friday/FridayConversation.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/workspace'
   }
