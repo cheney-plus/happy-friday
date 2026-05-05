@@ -2,7 +2,7 @@
   <div class="friday-container" @click="closeAllDropdowns">
     <div class="friday-content">
       <div class="logo-section">
-        <div class="logo-badge">专属个人知识智能服务助手</div>
+        <div class="logo-badge">定制化个人知识智能服务助手</div>
         <div class="logo-main">
           <span class="logo-icon">✦</span>
           <h1 class="logo-text">Friday</h1>
