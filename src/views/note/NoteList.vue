@@ -191,7 +191,7 @@ const onResizeStart = (e: MouseEvent) => {
 };
 
 const folders = reactive<Folder[]>([
-  { id: 'all', name: '全部笔记', count: 13 },
+  { id: 'all', name: '全部', count: 13 },
   { id: '123', name: '123', count: 1 },
   { id: 'freya', name: 'freya 项目', count: 1 }
 ]);
@@ -434,7 +434,7 @@ onBeforeUnmount(() => {
 }
 
 .sidebar-header {
-  padding: 0 16px 8px;
+  padding: 0 12px 8px;
   position: relative;
 }
 
@@ -442,7 +442,7 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 6px 8px;
   border-radius: 8px;
   font-size: 15px;
   font-weight: 600;
@@ -580,5 +580,162 @@ onBeforeUnmount(() => {
 
 .empty-hint p {
   font-size: 14px;
+}
+</style>
+
+<style>
+.folder-dropdown {
+  position: fixed;
+  z-index: 99999;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.08);
+  padding: 6px 0;
+  min-width: 200px;
+  animation: dropdown-in 0.12s ease-out;
+}
+
+[data-theme='dark'] .folder-dropdown {
+  background-color: #2a2725;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes dropdown-in {
+  from { opacity: 0; transform: scale(0.96) translateY(-4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.folder-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  font-size: 13px;
+  color: #1c1917;
+  cursor: pointer;
+  transition: background-color 0.1s;
+  user-select: none;
+}
+
+[data-theme='dark'] .folder-item {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.folder-item:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme='dark'] .folder-item:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.folder-item.active {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='dark'] .folder-item.active {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.folder-item svg {
+  flex-shrink: 0;
+  color: #78716c;
+}
+
+[data-theme='dark'] .folder-item svg {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.folder-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.folder-item-name {
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.folder-count {
+  font-size: 11px;
+  color: #a8a29e;
+}
+
+[data-theme='dark'] .folder-count {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.context-menu {
+  position: fixed;
+  z-index: 99999;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.08);
+  padding: 6px 0;
+  min-width: 180px;
+  animation: dropdown-in 0.12s ease-out;
+}
+
+[data-theme='dark'] .context-menu {
+  background-color: #2a2725;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+.context-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  font-size: 13px;
+  color: #1c1917;
+  cursor: pointer;
+  transition: background-color 0.1s;
+  user-select: none;
+}
+
+[data-theme='dark'] .context-item {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.context-item:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme='dark'] .context-item:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.context-item svg {
+  flex-shrink: 0;
+  color: #78716c;
+}
+
+[data-theme='dark'] .context-item svg {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.context-item.danger {
+  color: #ef4444;
+}
+
+.context-item.danger svg {
+  color: #ef4444;
+}
+
+.context-item .arrow-right {
+  margin-left: auto;
+  opacity: 0.4;
+}
+
+.context-divider {
+  height: 1px;
+  background-color: #e7e5e4;
+  margin: 4px 12px;
+}
+
+[data-theme='dark'] .context-divider {
+  background-color: #3f3f46;
 }
 </style>
