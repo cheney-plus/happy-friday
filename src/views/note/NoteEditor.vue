@@ -12,7 +12,7 @@ const props = withDefaults(defineProps<{
   placeholder?: string;
   modelValue?: string;
 }>(), {
-  placeholder: 'Start writing...',
+  placeholder: '开始写作...',
   modelValue: '',
 });
 

@@ -1,7 +1,7 @@
 import { PartialBlock } from "@blocknote/core";
 import { filterSuggestionItems } from "@blocknote/core/extensions";
 import "@blocknote/core/fonts/inter.css";
-import { en } from "@blocknote/core/locales";
+import { zh } from "@blocknote/core/locales";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import {
@@ -19,7 +19,7 @@ import {
   ClientSideTransport,
   getAISlashMenuItems,
 } from "@blocknote/xl-ai";
-import { en as aiEn } from "@blocknote/xl-ai/locales";
+import { zh as aiZh } from "@blocknote/xl-ai/locales";
 import "@blocknote/xl-ai/style.css";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { useCallback, useEffect, useRef } from "react";
@@ -46,12 +46,12 @@ export default function BlockNoteEditorComponent({
 
   const editor = useCreateBlockNote({
     dictionary: {
-      ...en,
-      ai: aiEn,
+      ...zh,
+      ai: aiZh,
       placeholders: {
-        ...en.placeholders,
-        default: placeholder || "Start writing...",
-        heading: placeholder || "Heading",
+        ...zh.placeholders,
+        default: placeholder || "开始写作...",
+        heading: placeholder || "标题",
       },
     },
     extensions: [
