@@ -68,18 +68,4 @@ onBeforeUnmount(() => {
   overflow-y: auto;
   padding: 0 32px 0 48px;
 }
-
-.editor-wrapper :deep(.bn-container) {
-  flex: 1;
-}
-
-.editor-wrapper :deep(.bn-editor) {
-  padding: 48px 0 24px;
-  font-size: 15px;
-  line-height: 1.75;
-}
-
-.editor-wrapper :deep(.bn-block-content) {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-}
 </style>

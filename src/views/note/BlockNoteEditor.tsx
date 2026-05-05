@@ -23,6 +23,7 @@ import { en as aiEn } from "@blocknote/xl-ai/locales";
 import "@blocknote/xl-ai/style.css";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { useCallback, useEffect, useRef } from "react";
+import "./blocknote-editor.css";
 
 const deepseekModel = createOpenAICompatible({
   name: "deepseek",
@@ -85,7 +86,7 @@ export default function BlockNoteEditorComponent({
   }, [onChange, editor]);
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div className="bn-editor-custom" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <BlockNoteView
         editor={editor}
         formattingToolbar={false}
