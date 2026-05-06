@@ -5,6 +5,7 @@ export type IconName = 'FolderKanban' | 'FileText' | 'CalendarDays' | 'Bot' | 'C
 export interface Tab {
   id: string;
   path: string;
+  fullPath: string;
   i18nKey: string;
   icon?: IconName;
 }
@@ -25,9 +26,11 @@ export const useTabStore = defineStore('tabs', {
     },
     addFridayTab() {
       this.fridayCounter++;
+      const id = `friday-${this.fridayCounter}`;
       const tab: Tab = {
-        id: `friday-${this.fridayCounter}`,
+        id,
         path: '/friday',
+        fullPath: `/friday?__tab=${id}`,
         i18nKey: 'friday.title',
         icon: 'Bot'
       };
@@ -52,6 +55,12 @@ export const useTabStore = defineStore('tabs', {
     },
     setActiveTab(id: string) {
       this.activeTabId = id;
+    },
+    updateTabFullPath(id: string, fullPath: string) {
+      const tab = this.openedTabs.find(t => t.id === id);
+      if (tab) {
+        tab.fullPath = fullPath;
+      }
     }
   }
 });
