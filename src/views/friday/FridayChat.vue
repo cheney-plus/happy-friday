@@ -39,7 +39,7 @@
                   <line x1="2" y1="12" x2="22" y2="12"></line>
                   <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
                 </svg>
-                <span>DS 快速</span>
+                <span>{{ currentModelName }}</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="6 9 12 15 18 9"></polyline>
                 </svg>
@@ -196,14 +196,55 @@ const currentModeLabel = computed(() => {
 const dsSettings = ref({
   webSearch: true,
   thinkMode: 'fast',
-  modelId: 'deepseek-v4'
+  modelId: ''
 });
 
-const modelList = [
-  { id: 'deepseek-v4', name: 'DeepSeek V4–Flash', badge: 'New', desc: '通用逻辑推理' },
-  { id: 'glm-5.1', name: '智谱 GLM–5.1', badge: '', desc: '复杂任务分析' },
-  { id: 'hy3-preview', name: 'Tencent Hy3 preview', badge: '', desc: '适合长文分析' }
-];
+const customModels = ref<{
+  id: string;
+  provider: string;
+  providerLabel: string;
+  apiKey: string;
+  modelName: string;
+  baseUrl: number
+}[]>([]);
+
+const STORAGE_KEY = 'happy-friday-custom-models';
+const SELECTED_MODEL_KEY = 'happy-friday-selected-model';
+
+const loadCustomModels = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      customModels.value = JSON.parse(stored);
+      const selectedId = localStorage.getItem(SELECTED_MODEL_KEY);
+      if (selectedId && customModels.value.find(m => m.id === selectedId)) {
+        dsSettings.value.modelId = selectedId;
+      } else if (customModels.value.length > 0) {
+        dsSettings.value.modelId = customModels.value[0].id;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load custom models:', error);
+  }
+};
+
+const modelList = computed(() => {
+  const descriptions: Record<string, string> = {
+    doubao: '通用对话与创作',
+    qwen: '多模态理解与生成',
+    zhipu: '复杂任务分析',
+    deepseek: '逻辑推理与代码',
+    kimi: '长文本处理',
+    minimax: '智能对话助手'
+  };
+
+  return customModels.value.map(model => ({
+    id: model.id,
+    name: `${model.providerLabel} ${model.modelName}`,
+    badge: '',
+    desc: descriptions[model.provider] || '自定义模型'
+  }));
+});
 
 const toggleModeDropdown = (event: MouseEvent) => {
   const btn = event.currentTarget as HTMLElement;
@@ -242,7 +283,13 @@ const selectMode = (mode: string) => {
 
 const selectModel = (modelId: string) => {
   dsSettings.value.modelId = modelId;
+  localStorage.setItem(SELECTED_MODEL_KEY, modelId);
 };
+
+const currentModelName = computed(() => {
+  const model = customModels.value.find(m => m.id === dsSettings.value.modelId);
+  return model ? `${model.providerLabel} ${model.modelName}` : 'DS 快速';
+});
 
 const closeAllDropdowns = () => {
   showModeDropdown.value = false;
@@ -257,6 +304,7 @@ const handleSend = () => {
 
 onMounted(() => {
   document.addEventListener('scroll', closeAllDropdowns, true);
+  loadCustomModels();
 });
 
 onUnmounted(() => {

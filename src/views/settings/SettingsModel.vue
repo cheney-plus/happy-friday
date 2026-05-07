@@ -267,6 +267,7 @@ const toggleModelDropdown = () => {
 const selectModel = (model: typeof customModels.value[0]) => {
   selectedModel.value = model.id;
   showModelDropdown.value = false;
+  localStorage.setItem('happy-friday-selected-model', model.id);
 };
 
 const deleteTarget = ref<typeof customModels.value[0] | null>(null);
@@ -340,6 +341,12 @@ const loadCustomModels = () => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       customModels.value = JSON.parse(stored);
+      const savedSelected = localStorage.getItem('happy-friday-selected-model');
+      if (savedSelected && customModels.value.find(m => m.id === savedSelected)) {
+        selectedModel.value = savedSelected;
+      } else if (customModels.value.length > 0) {
+        selectedModel.value = customModels.value[0].id;
+      }
     }
   } catch (error) {
     console.error('Failed to load custom models:', error);
