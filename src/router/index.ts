@@ -61,7 +61,7 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/friday/FridayChat.vue')
   },
   {
-    path: '/friday/chat',
+    path: '/friday/chat/:sessionId?',
     name: 'friday-chat',
     component: () => import('@/views/friday/FridayConversation.vue')
   },

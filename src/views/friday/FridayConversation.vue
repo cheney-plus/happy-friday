@@ -53,8 +53,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue';
+import { ref, nextTick, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { invoke } from '@tauri-apps/api/core';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import UserMessage from '@/components/chat/UserMessage.vue';
 import AIMessage from '@/components/chat/AIMessage.vue';
 import ChatInputBox from '@/components/chat/ChatInputBox.vue';
@@ -73,9 +75,19 @@ const chatTime = ref(formatTime(new Date()));
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  id?: number;
 }
 
 const messages = ref<Message[]>([]);
+
+const currentMode = ref<string>('');
+const currentSessionId = ref<string>('');
+let unlistenChunk: UnlistenFn | null = null;
+let unlistenDone: UnlistenFn | null = null;
+let unlistenError: UnlistenFn | null = null;
+let unlistenTitle: UnlistenFn | null = null;
+let activeRequestId = '';
+let isDoneReceived = false;
 
 function formatTime(date: Date): string {
   const h = date.getHours().toString().padStart(2, '0');
@@ -99,81 +111,31 @@ function scrollToBottom() {
   });
 }
 
-const aiResponses = [
-  `你好！我是 **Friday**，你的专属个人知识智能服务助手 🎉
-
-我可以帮你完成以下任务：
-
-- 📝 **智能写作** — 辅助创作与润色
-- 📄 **文档解读** — 多格式智能分析
-- 🔍 **知识检索** — 从你的知识库中查找信息
-- 💡 **头脑风暴** — 帮你拓展思路
-
-有什么我可以帮你的吗？`,
-
-  `这是一个很好的问题！让我来为你详细解答。
-
-## 核心要点
-
-1. **理解需求** — 首先要明确目标和约束条件
-2. **设计方案** — 制定可行的实施方案
-3. **执行落地** — 按计划推进并迭代优化
-
-> 成功的关键在于持续迭代和反馈循环。
-
-如果你需要更深入的分析，随时告诉我！`,
-
-  `好的，我来帮你梳理一下思路。
-
-### 步骤一：分析现状
-当前的情况需要从多个维度来评估，包括技术可行性、资源投入和预期收益。
-
-### 步骤二：制定计划
-基于分析结果，我建议采用以下方案：
-
-| 维度 | 方案 | 优先级 |
-|------|------|--------|
-| 技术 | 渐进式迭代 | 高 |
-| 资源 | 分阶段投入 | 中 |
-| 验证 | A/B 测试 | 高 |
-
-### 步骤三：执行与反馈
-在执行过程中，需要持续监控关键指标，及时调整策略。
-
-需要我进一步展开某个方面吗？`
-];
-
-function simulateAIResponse() {
-  isStreaming.value = true;
-  streamingContent.value = '';
-
-  const fullText = aiResponses[messages.value.length % aiResponses.length];
-  let charIndex = 0;
-
-  const interval = setInterval(() => {
-    if (charIndex < fullText.length) {
-      const chunkSize = Math.floor(Math.random() * 3) + 1;
-      streamingContent.value += fullText.slice(charIndex, charIndex + chunkSize);
-      charIndex += chunkSize;
-      scrollToBottom();
-    } else {
-      clearInterval(interval);
-      isStreaming.value = false;
-      messages.value.push({
-        role: 'assistant',
-        content: fullText
-      });
-      streamingContent.value = '';
-      scrollToBottom();
+function loadModelConfig(modelId: string) {
+  try {
+    const stored = localStorage.getItem('happy-friday-custom-models');
+    if (stored) {
+      const models = JSON.parse(stored);
+      return models.find((m: any) => m.id === modelId) || null;
     }
-  }, 30);
+  } catch (e) {
+    console.error('Failed to load model config:', e);
+  }
+  return null;
 }
 
-function handleSend(e?: Event) {
-  if (e instanceof KeyboardEvent && e.isComposing) return;
+async function sendChatMessage(text: string) {
+  if (isStreaming.value || !text.trim()) return;
 
-  const text = inputText.value.trim();
-  if (!text || isStreaming.value) return;
+  const mode = route.query.mode as string || 'chat';
+  const modelId = route.query.modelId as string || '';
+  const sessionId = route.query.sessionId as string || '';
+  const model = loadModelConfig(modelId);
+
+  if (!model) {
+    console.error('No model config found');
+    return;
+  }
 
   messages.value.push({
     role: 'user',
@@ -181,25 +143,180 @@ function handleSend(e?: Event) {
   });
 
   inputText.value = '';
-
+  isStreaming.value = true;
+  streamingContent.value = '';
   scrollToBottom();
 
-  setTimeout(() => {
-    simulateAIResponse();
-  }, 500);
+  activeRequestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  isDoneReceived = false;
+
+  try {
+    if (mode === 'chat') {
+      await invoke<Record<string, any>>('chat_with_memory', {
+        requestId: activeRequestId,
+        sessionId: currentSessionId.value || '',
+        model: model,
+        message: text
+      });
+    } else {
+      await invoke<void>('chat_without_memory', {
+        requestId: activeRequestId,
+        model: model,
+        message: text
+      });
+    }
+  } catch (err) {
+    console.error('Chat invoke error:', err);
+    isStreaming.value = false;
+    streamingContent.value = '';
+  }
 }
 
-onMounted(() => {
+function handleSend(e?: Event) {
+  if (e instanceof KeyboardEvent && e.isComposing) return;
+  sendChatMessage(inputText.value);
+}
+
+async function loadSessionHistory(sessionId: string) {
+  try {
+    const history = await invoke<Array<{ id: number; session_id: string; role: string; content: string; created_at: string }>>(
+      'get_session_messages',
+      { sessionId }
+    );
+    messages.value = history.map(m => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+      id: m.id
+    }));
+  } catch (err) {
+    console.error('Failed to load session history:', err);
+  }
+}
+
+async function triggerAiResponse() {
+  if (isStreaming.value) return;
+
+  const mode = route.query.mode as string || 'chat';
+  const modelId = route.query.modelId as string || '';
+  const model = loadModelConfig(modelId);
+
+  if (!model) return;
+
+  isStreaming.value = true;
+  streamingContent.value = '';
+  scrollToBottom();
+
+  activeRequestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  isDoneReceived = false;
+
+  try {
+    if (mode === 'chat') {
+      await invoke<Record<string, any>>('chat_with_memory', {
+        requestId: activeRequestId,
+        sessionId: currentSessionId.value || '',
+        model: model,
+        message: ''
+      });
+    }
+  } catch (err) {
+    console.error('Chat invoke error:', err);
+    isStreaming.value = false;
+    streamingContent.value = '';
+  }
+}
+
+async function initConversation() {
+  isStreaming.value = false;
+  streamingContent.value = '';
+  messages.value = [];
+  activeRequestId = '';
+  isDoneReceived = false;
+  chatTitle.value = '与 Friday 的对话';
+  chatTime.value = formatTime(new Date());
+
+  currentMode.value = route.query.mode as string || 'chat';
+  currentSessionId.value = (route.params.sessionId as string) || '';
+
   const query = route.query.q as string;
   if (query) {
-    messages.value.push({
-      role: 'user',
-      content: query
-    });
-    nextTick(() => {
-      simulateAIResponse();
-    });
+    if (currentMode.value === 'chat' && currentSessionId.value) {
+      await loadSessionHistory(currentSessionId.value);
+    }
+
+    const alreadyHasMessage = messages.value.length > 0
+      && messages.value[messages.value.length - 1].role === 'user'
+      && messages.value[messages.value.length - 1].content === query;
+
+    if (alreadyHasMessage) {
+      await triggerAiResponse();
+    } else {
+      sendChatMessage(query);
+    }
   }
+}
+
+onMounted(async () => {
+  unlistenChunk = await listen<{ requestId: string; sessionId?: string; content: string }>(
+    'chat-chunk',
+    (event) => {
+      if (event.payload.requestId !== activeRequestId) return;
+      streamingContent.value += event.payload.content;
+      scrollToBottom();
+    }
+  );
+
+  unlistenDone = await listen<{ requestId: string; sessionId?: string; fullContent: string; messageId?: number }>(
+    'chat-done',
+    (event) => {
+      if (event.payload.requestId !== activeRequestId) return;
+      if (isDoneReceived) return;
+      isDoneReceived = true;
+
+      isStreaming.value = false;
+      if (streamingContent.value || event.payload.fullContent) {
+        messages.value.push({
+          role: 'assistant',
+          content: event.payload.fullContent || streamingContent.value,
+          id: event.payload.messageId
+        });
+      }
+
+      if (event.payload.sessionId && !currentSessionId.value) {
+        currentSessionId.value = event.payload.sessionId;
+      }
+
+      streamingContent.value = '';
+      scrollToBottom();
+    }
+  );
+
+  unlistenError = await listen<{ requestId: string; sessionId?: string; error: string }>(
+    'chat-error',
+    (event) => {
+      if (event.payload.requestId !== activeRequestId) return;
+      isStreaming.value = false;
+      streamingContent.value = '';
+      console.error('Stream error:', event.payload.error);
+    }
+  );
+
+  unlistenTitle = await listen<{ sessionId: string; title: string }>(
+    'session-title-updated',
+    (event) => {
+      if (event.payload.sessionId === currentSessionId.value) {
+        chatTitle.value = event.payload.title;
+      }
+    }
+  );
+
+  await initConversation();
+});
+
+onUnmounted(() => {
+  unlistenChunk?.();
+  unlistenDone?.();
+  unlistenError?.();
+  unlistenTitle?.();
 });
 </script>
 
