@@ -38,7 +38,7 @@
               <span class="toggle-slider"></span>
             </label>
           </div>
-          <div class="setting-item clickable">
+          <div class="setting-item clickable" @click="goToModelSettings">
             <span class="item-label">模型设置</span>
             <span class="item-link">
               支持自定义模型
@@ -156,6 +156,9 @@
 
 <script setup lang="ts">
 import { reactive } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 const settings = reactive({
   displayMode: 'system',
@@ -165,6 +168,10 @@ const settings = reactive({
   restoreTabs: true,
   showBookmarkBar: false
 });
+
+const goToModelSettings = () => {
+  router.push('/settings/model');
+};
 </script>
 
 <style scoped>

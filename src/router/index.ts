@@ -51,6 +51,11 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/settings/SettingsGeneral.vue')
   },
   {
+    path: '/settings/model',
+    name: 'settings-model',
+    component: () => import('@/views/settings/SettingsModel.vue')
+  },
+  {
     path: '/friday',
     name: 'friday',
     component: () => import('@/views/friday/FridayChat.vue')
