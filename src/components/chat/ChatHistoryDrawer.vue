@@ -41,7 +41,7 @@
               v-for="session in sessions"
               :key="session.id"
               class="session-item"
-              @click="openSession(session.id)"
+              @click="openSession(session)"
             >
               <div class="session-info">
                 <span class="session-title">{{ session.title }}</span>
@@ -199,11 +199,11 @@ const formatDateTime = (dateStr: string): string => {
   }
 };
 
-const openSession = (sessionId: string) => {
+const openSession = (session: Session) => {
   router.push({
     name: 'friday-chat',
-    params: { sessionId },
-    query: { mode: 'chat' }
+    params: { sessionId: session.id },
+    query: { mode: 'chat', title: session.title }
   });
   isOpen.value = false;
 };

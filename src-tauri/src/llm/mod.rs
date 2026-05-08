@@ -145,7 +145,7 @@ pub async fn generate_title(
     let body = json!({
         "model": model.model_name,
         "messages": [
-            {"role": "system", "content": "请用5-10个字总结以下用户问题的主题，只返回主题文字，不要加引号或其他格式。"},
+            {"role": "system", "content": "请用5-10个字总结概括以下用户的消息内容，只需要总结概括，不要展开扩展。不要加引号或其他格式。"},
             {"role": "user", "content": user_message}
         ],
         "stream": false,

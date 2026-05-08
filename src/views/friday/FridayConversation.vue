@@ -243,6 +243,10 @@ async function initConversation() {
   currentSessionId.value = (route.params.sessionId as string) || '';
 
   if (currentMode.value === 'chat' && currentSessionId.value) {
+    const queryTitle = route.query.title as string;
+    if (queryTitle) {
+      chatTitle.value = queryTitle;
+    }
     await loadSessionHistory(currentSessionId.value);
     try {
       const sessionInfo = await invoke<{ id: string; title: string }>('get_session', { sessionId: currentSessionId.value });
