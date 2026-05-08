@@ -309,6 +309,7 @@ const handleSend = async () => {
   if (currentMode.value === 'chat' && selectedModel) {
     router.push({
       name: 'friday-chat',
+      params: { sessionId: `new-${Date.now()}` },
       query: {
         q: text,
         mode: currentMode.value,

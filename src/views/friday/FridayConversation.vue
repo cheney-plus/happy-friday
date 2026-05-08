@@ -241,6 +241,9 @@ async function initConversation() {
 
   currentMode.value = route.query.mode as string || 'chat';
   currentSessionId.value = (route.params.sessionId as string) || '';
+  if (currentSessionId.value.startsWith('new-')) {
+    currentSessionId.value = '';
+  }
 
   if (currentMode.value === 'chat' && currentSessionId.value) {
     const queryTitle = route.query.title as string;
