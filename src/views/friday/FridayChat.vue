@@ -33,7 +33,7 @@
                 </svg>
               </button>
 
-              <button class="action-btn dropdown-btn" @click.stop="toggleDsDropdown($event)">
+              <button class="action-btn dropdown-btn" @click.stop="toggleModelDropdown($event)">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="2" y1="12" x2="22" y2="12"></line>
@@ -95,44 +95,44 @@
             </div>
           </div>
 
-          <div v-if="showDsDropdown" class="dropdown-overlay" :style="dsDropdownStyle" @click.stop>
-            <div class="dropdown-panel ds-dropdown">
-              <div class="ds-row ds-toggle-row">
-                <span class="ds-label">
+          <div v-if="showModelDropdown" class="dropdown-overlay" :style="modelDropdownStyle" @click.stop>
+            <div class="dropdown-panel model-dropdown">
+              <div class="model-row model-toggle-row">
+                <span class="model-label">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                   联网搜索
                 </span>
                 <label class="toggle-switch">
-                  <input type="checkbox" v-model="dsSettings.webSearch">
+                  <input type="checkbox" v-model="modelSettings.webSearch">
                   <span class="toggle-slider"></span>
                 </label>
               </div>
 
-              <div class="ds-row ds-think-row">
-                <span class="ds-label">
+              <div class="model-row model-think-row">
+                <span class="model-label">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                   思考模式
                 </span>
                 <div class="think-tabs">
                   <button
                     class="think-tab"
-                    :class="{ active: dsSettings.thinkMode === 'fast' }"
-                    @click="dsSettings.thinkMode = 'fast'"
+                    :class="{ active: modelSettings.thinkMode === 'fast' }"
+                    @click="modelSettings.thinkMode = 'fast'"
                   >快速</button>
                   <button
                     class="think-tab"
-                    :class="{ active: dsSettings.thinkMode === 'deep' }"
-                    @click="dsSettings.thinkMode = 'deep'"
+                    :class="{ active: modelSettings.thinkMode === 'deep' }"
+                    @click="modelSettings.thinkMode = 'deep'"
                   >深度</button>
                 </div>
               </div>
 
-              <div class="ds-model-list">
+              <div class="model-model-list">
                 <div
                   v-for="model in modelList"
                   :key="model.id"
                   class="model-item"
-                  :class="{ active: dsSettings.modelId === model.id }"
+                  :class="{ active: modelSettings.modelId === model.id }"
                   @click="selectModel(model.id)"
                 >
                   <div class="model-info">
@@ -140,7 +140,7 @@
                     <span v-if="model.badge" class="model-badge">{{ model.badge }}</span>
                   </div>
                   <span class="model-desc">{{ model.desc }}</span>
-                  <svg v-if="dsSettings.modelId === model.id" class="model-check" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  <svg v-if="modelSettings.modelId === model.id" class="model-check" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
               </div>
             </div>
@@ -181,10 +181,10 @@ const inputText = ref('');
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 
 const showModeDropdown = ref(false);
-const showDsDropdown = ref(false);
+const showModelDropdown = ref(false);
 const currentMode = ref('chat');
 const modeDropdownStyle = ref({});
-const dsDropdownStyle = ref({});
+const modelDropdownStyle = ref({});
 
 const chatModes = [
   { value: 'chat', label: '对话模式' },
@@ -197,7 +197,7 @@ const currentModeLabel = computed(() => {
   return mode?.label || '对话模式';
 });
 
-const dsSettings = ref({
+const modelSettings = ref({
   webSearch: true,
   thinkMode: 'fast',
   modelId: ''
@@ -222,9 +222,9 @@ const loadCustomModels = () => {
       customModels.value = JSON.parse(stored);
       const selectedId = localStorage.getItem(SELECTED_MODEL_KEY);
       if (selectedId && customModels.value.find(m => m.id === selectedId)) {
-        dsSettings.value.modelId = selectedId;
+        modelSettings.value.modelId = selectedId;
       } else if (customModels.value.length > 0) {
-        dsSettings.value.modelId = customModels.value[0].id;
+        modelSettings.value.modelId = customModels.value[0].id;
       }
     }
   } catch (error) {
@@ -254,7 +254,7 @@ const toggleModeDropdown = (event: MouseEvent) => {
   const btn = event.currentTarget as HTMLElement;
   const rect = btn.getBoundingClientRect();
   showModeDropdown.value = !showModeDropdown.value;
-  showDsDropdown.value = false;
+  showModelDropdown.value = false;
   if (showModeDropdown.value) {
     modeDropdownStyle.value = {
       position: 'fixed',
@@ -265,13 +265,13 @@ const toggleModeDropdown = (event: MouseEvent) => {
   }
 };
 
-const toggleDsDropdown = (event: MouseEvent) => {
+const toggleModelDropdown = (event: MouseEvent) => {
   const btn = event.currentTarget as HTMLElement;
   const rect = btn.getBoundingClientRect();
-  showDsDropdown.value = !showDsDropdown.value;
+  showModelDropdown.value = !showModelDropdown.value;
   showModeDropdown.value = false;
-  if (showDsDropdown.value) {
-    dsDropdownStyle.value = {
+  if (showModelDropdown.value) {
+    modelDropdownStyle.value = {
       position: 'fixed',
       top: rect.bottom + 8 + 'px',
       left: rect.left + 'px',
@@ -286,25 +286,25 @@ const selectMode = (mode: string) => {
 };
 
 const selectModel = (modelId: string) => {
-  dsSettings.value.modelId = modelId;
+  modelSettings.value.modelId = modelId;
   localStorage.setItem(SELECTED_MODEL_KEY, modelId);
 };
 
 const currentModelName = computed(() => {
-  const model = customModels.value.find(m => m.id === dsSettings.value.modelId);
-  return model ? `${model.providerLabel} ${model.modelName}` : 'DS 快速';
+  const model = customModels.value.find(m => m.id === modelSettings.value.modelId);
+  return model ? `${model.providerLabel} ${model.modelName}` : '选择模型';
 });
 
 const closeAllDropdowns = () => {
   showModeDropdown.value = false;
-  showDsDropdown.value = false;
+  showModelDropdown.value = false;
 };
 
 const handleSend = async () => {
   const text = inputText.value.trim();
   if (!text) return;
 
-  const selectedModel = customModels.value.find(m => m.id === dsSettings.value.modelId);
+  const selectedModel = customModels.value.find(m => m.id === modelSettings.value.modelId);
 
   if (currentMode.value === 'chat' && selectedModel) {
     router.push({
@@ -637,30 +637,30 @@ const handleFeatureClick = (id: string) => {
   font-weight: 600;
 }
 
-.ds-dropdown {
+.model-dropdown {
   width: 320px;
   padding: 16px;
 }
 
-.ds-row {
+.model-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding-bottom: 14px;
 }
 
-.ds-toggle-row {
+.model-toggle-row {
   padding-bottom: 14px;
   border-bottom: 1px solid #f3f4f6;
 }
 
-.ds-think-row {
+.model-think-row {
   padding-top: 14px;
   padding-bottom: 14px;
   border-bottom: 1px solid #f3f4f6;
 }
 
-.ds-label {
+.model-label {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -742,7 +742,7 @@ const handleFeatureClick = (id: string) => {
   color: #374151;
 }
 
-.ds-model-list {
+.model-model-list {
   margin-top: 12px;
 }
 
