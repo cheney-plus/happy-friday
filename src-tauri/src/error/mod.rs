@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Serialize, Serializer};
 
 #[derive(thiserror::Error, Debug)]
 pub enum AppError {
@@ -32,9 +32,3 @@ impl From<rusqlite::Error> for AppError {
 }
 
 pub type AppResult<T> = Result<T, AppError>;
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct StreamError {
-    pub code: Option<String>,
-    pub message: String,
-}

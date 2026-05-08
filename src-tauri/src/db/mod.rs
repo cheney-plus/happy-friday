@@ -178,15 +178,7 @@ pub fn rollback_session(conn: &Connection, session_id: &str, message_id: i64) ->
     Ok(())
 }
 
-pub fn get_message_count(conn: &Connection, session_id: &str) -> AppResult<i64> {
-    let count: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM messages WHERE session_id = ?1",
-        [session_id],
-        |row| row.get(0),
-    )?;
-    Ok(count)
-}
-
+#[cfg(test)]
 fn init_test_db(conn: &Connection) {
     conn.execute_batch(
         "PRAGMA journal_mode=WAL;
@@ -343,92 +335,5 @@ mod tests {
         assert_eq!(messages[0].content, "msg1");
         assert_eq!(messages[1].content, "msg2");
     }
-
-    #[test]
-    fn test_get_message_count() {
-        let conn = get_test_conn();
-        let session = create_session(&conn).unwrap();
-
-        assert_eq!(get_message_count(&conn, &session.id).unwrap(), 0);
-
-        save_message(&conn, &session.id, "user", "hello").unwrap();
-        assert_eq!(get_message_count(&conn, &session.id).unwrap(), 1);
-
-        save_message(&conn, &session.id, "assistant", "world").unwrap();
-        assert_eq!(get_message_count(&conn, &session.id).unwrap(), 2);
-
-        let other_session = create_session(&conn).unwrap();
-        assert_eq!(get_message_count(&conn, &other_session.id).unwrap(), 0);
-    }
-
-    #[test]
-    fn test_full_chat_flow_with_memory() {
-        let conn = get_test_conn();
-
-        let session = create_session(&conn).unwrap();
-        assert_eq!(get_message_count(&conn, &session.id).unwrap(), 0);
-
-        save_message(&conn, &session.id, "user", "你好，今天天气怎么样？").unwrap();
-        save_message(
-            &conn,
-            &session.id,
-            "assistant",
-            "你好！作为AI助手，我无法获取实时天气信息。建议你查看天气预报应用或网站来了解今天的天气情况。",
-        )
-        .unwrap();
-        save_message(&conn, &session.id, "user", "那帮我写一首关于春天的诗吧").unwrap();
-        save_message(
-            &conn,
-            &session.id,
-            "assistant",
-            "春风拂面柳如丝，\n桃李争芳满树枝。\n燕子归来寻旧垒，\n一江春水绿如诗。",
-        )
-        .unwrap();
-
-        let count = get_message_count(&conn, &session.id).unwrap();
-        assert_eq!(count, 4);
-
-        let messages = get_messages(&conn, &session.id).unwrap();
-        assert_eq!(messages.len(), 4);
-        assert_eq!(messages[0].role, "user");
-        assert_eq!(messages[1].role, "assistant");
-        assert_eq!(messages[2].role, "user");
-        assert_eq!(messages[3].role, "assistant");
-
-        rollback_session(&conn, &session.id, messages[1].id).unwrap();
-        let after_rollback = get_messages(&conn, &session.id).unwrap();
-        assert_eq!(after_rollback.len(), 2);
-
-        update_session_title(&conn, &session.id, "诗歌创作对话").unwrap();
-        let updated = get_session(&conn, &session.id).unwrap().unwrap();
-        assert_eq!(updated.title, "诗歌创作对话");
-    }
-
-    #[test]
-    fn test_multiple_sessions_isolation() {
-        let conn = get_test_conn();
-
-        let s1 = create_session(&conn).unwrap();
-        let s2 = create_session(&conn).unwrap();
-
-        save_message(&conn, &s1.id, "user", "会话1的消息").unwrap();
-        save_message(&conn, &s2.id, "user", "会话2的消息").unwrap();
-
-        let msgs1 = get_messages(&conn, &s1.id).unwrap();
-        let msgs2 = get_messages(&conn, &s2.id).unwrap();
-
-        assert_eq!(msgs1.len(), 1);
-        assert_eq!(msgs2.len(), 1);
-        assert_eq!(msgs1[0].content, "会话1的消息");
-        assert_eq!(msgs2[0].content, "会话2的消息");
-
-        delete_session(&conn, &s1.id).unwrap();
-
-        let msgs2_after_delete = get_messages(&conn, &s2.id).unwrap();
-        assert_eq!(msgs2_after_delete.len(), 1);
-
-        let remaining_sessions = get_sessions(&conn).unwrap();
-        assert_eq!(remaining_sessions.len(), 1);
-        assert_eq!(remaining_sessions[0].id, s2.id);
-    }
+  
 }

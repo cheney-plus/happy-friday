@@ -18,7 +18,7 @@
     "@floating-ui/react": "^0.27.19",
     "@mantine/core": "^8.3.18",
     "@mantine/hooks": "^8.3.18",
-    "@tauri-apps/api": "^2",
+    "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-opener": "^2",
     "ai": "^6.0.174",
     "lucide-vue-next": "^1.0.0",
@@ -31,7 +31,7 @@
     "vue-router": "^5.0.6"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2",
+    "@tauri-apps/cli": "^2.11.1",
     "@tsconfig/node20": "^20.1.9",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
