@@ -116,7 +116,12 @@ function loadModelConfig(modelId: string) {
     const stored = localStorage.getItem('happy-friday-custom-models');
     if (stored) {
       const models = JSON.parse(stored);
-      return models.find((m: any) => m.id === modelId) || null;
+      let model = models.find((m: any) => m.id === modelId);
+      if (!model && models.length > 0) {
+        const selectedId = localStorage.getItem('happy-friday-selected-model');
+        model = selectedId ? models.find((m: any) => m.id === selectedId) : models[0];
+      }
+      return model || null;
     }
   } catch (e) {
     console.error('Failed to load model config:', e);
@@ -237,12 +242,18 @@ async function initConversation() {
   currentMode.value = route.query.mode as string || 'chat';
   currentSessionId.value = (route.params.sessionId as string) || '';
 
+  if (currentMode.value === 'chat' && currentSessionId.value) {
+    await loadSessionHistory(currentSessionId.value);
+    try {
+      const sessionInfo = await invoke<{ id: string; title: string }>('get_session', { sessionId: currentSessionId.value });
+      if (sessionInfo) {
+        chatTitle.value = sessionInfo.title;
+      }
+    } catch {}
+  }
+
   const query = route.query.q as string;
   if (query) {
-    if (currentMode.value === 'chat' && currentSessionId.value) {
-      await loadSessionHistory(currentSessionId.value);
-    }
-
     const alreadyHasMessage = messages.value.length > 0
       && messages.value[messages.value.length - 1].role === 'user'
       && messages.value[messages.value.length - 1].content === query;

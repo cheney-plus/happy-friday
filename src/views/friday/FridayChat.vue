@@ -163,6 +163,8 @@
         </div>
       </div>
     </div>
+
+    <ChatHistoryDrawer />
   </div>
 </template>
 
@@ -171,6 +173,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { invoke } from '@tauri-apps/api/core';
+import ChatHistoryDrawer from '@/components/chat/ChatHistoryDrawer.vue';
 
 const router = useRouter();
 const { t } = useI18n();
@@ -304,20 +307,14 @@ const handleSend = async () => {
   const selectedModel = customModels.value.find(m => m.id === dsSettings.value.modelId);
 
   if (currentMode.value === 'chat' && selectedModel) {
-    try {
-      const session = await invoke<{ id: string; title: string }>('create_session');
-      router.push({
-        name: 'friday-chat',
-        params: { sessionId: session.id },
-        query: {
-          q: text,
-          mode: currentMode.value,
-          modelId: selectedModel.id
-        }
-      });
-    } catch (err) {
-      console.error('Failed to create session:', err);
-    }
+    router.push({
+      name: 'friday-chat',
+      query: {
+        q: text,
+        mode: currentMode.value,
+        modelId: selectedModel.id
+      }
+    });
   } else if (currentMode.value === 'memoryless' && selectedModel) {
     router.push({
       name: 'friday-chat',
