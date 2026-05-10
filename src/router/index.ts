@@ -3,7 +3,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 export const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    redirect: '/workspace'
+    redirect: '/friday'
   },
   {
     path: '/workspace',
