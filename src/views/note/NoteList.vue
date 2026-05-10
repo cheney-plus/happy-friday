@@ -505,8 +505,8 @@ onBeforeUnmount(() => {
   gap: 6px;
   padding: 6px 8px;
   border-radius: 8px;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text-primary);
   cursor: pointer;
   transition: background-color 0.12s;
@@ -524,7 +524,7 @@ onBeforeUnmount(() => {
 .note-items {
   flex: 1;
   overflow-y: auto;
-  padding: 4px 0;
+  padding: 2px 0;
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
@@ -575,18 +575,18 @@ onBeforeUnmount(() => {
 }
 
 .note-title {
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 400;
   color: var(--text-primary);
-  margin-bottom: 2px;
-  line-height: 1.4;
+  margin-bottom: 1px;
+  line-height: 1.35;
 }
 
 .note-meta {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-tertiary);
 }
 
