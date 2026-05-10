@@ -25,7 +25,7 @@
 
     <main class="conversation-messages" ref="messagesContainer">
       <div class="messages-inner">
-        <template v-for="(msg, index) in messages" :key="index">
+        <template v-for="(msg, index) in messages" :key="msg.id ?? index">
           <UserMessage v-if="msg.role === 'user'" :content="msg.content" />
           <AIMessage
             v-else
@@ -49,6 +49,13 @@
       placeholder="输入消息..."
       @send="handleSend"
     />
+
+    <RollbackConfirmDialog
+      :visible="rollbackDialogVisible"
+      :preview-content="rollbackPreviewContent"
+      @confirm="executeRollback"
+      @cancel="rollbackDialogVisible = false"
+    />
   </div>
 </template>
 
@@ -60,6 +67,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import UserMessage from '@/components/chat/UserMessage.vue';
 import AIMessage from '@/components/chat/AIMessage.vue';
 import ChatInputBox from '@/components/chat/ChatInputBox.vue';
+import RollbackConfirmDialog from '@/components/chat/RollbackConfirmDialog.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -68,6 +76,7 @@ const inputText = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
 const isStreaming = ref(false);
 const streamingContent = ref('');
+const isRollingBack = ref(false);
 
 const chatTitle = ref('与 Friday 的对话');
 const chatTime = ref(formatTime(new Date()));
@@ -89,6 +98,11 @@ let unlistenTitle: UnlistenFn | null = null;
 let activeRequestId = '';
 let isDoneReceived = false;
 
+const rollbackDialogVisible = ref(false);
+const rollbackPreviewContent = ref('');
+let pendingRollbackUserMsgId: number | null = null;
+let pendingRollbackUserMsgIndex: number | null = null;
+
 function formatTime(date: Date): string {
   const h = date.getHours().toString().padStart(2, '0');
   const m = date.getMinutes().toString().padStart(2, '0');
@@ -101,7 +115,66 @@ function goBack() {
 
 function handleAddToKnowledge() {}
 
-function handleAction(_action: string, _index: number) {}
+function handleAction(action: string, index: number) {
+  if (action === 'rollback') {
+    handleRollback(index);
+  }
+}
+
+function handleRollback(aiMsgIndex: number) {
+  if (isStreaming.value || isRollingBack.value) return;
+
+  if (aiMsgIndex <= 0 || messages.value[aiMsgIndex].role !== 'assistant') return;
+
+  let userMsgIndex = aiMsgIndex - 1;
+  while (userMsgIndex >= 0 && messages.value[userMsgIndex].role !== 'assistant') {
+    userMsgIndex--;
+  }
+  userMsgIndex++;
+
+  if (userMsgIndex < 0 || messages.value[userMsgIndex].role !== 'user') return;
+
+  const userMsg = messages.value[userMsgIndex];
+  if (!userMsg.id) {
+    console.error('User message has no ID, cannot rollback');
+    return;
+  }
+
+  pendingRollbackUserMsgId = userMsg.id;
+  pendingRollbackUserMsgIndex = userMsgIndex;
+  rollbackPreviewContent.value = userMsg.content;
+  rollbackDialogVisible.value = true;
+}
+
+async function executeRollback() {
+  rollbackDialogVisible.value = false;
+
+  if (pendingRollbackUserMsgId === null || pendingRollbackUserMsgIndex === null) return;
+  if (!currentSessionId.value) return;
+
+  isRollingBack.value = true;
+
+  try {
+    await invoke('rollback_session', {
+      sessionId: currentSessionId.value,
+      messageId: pendingRollbackUserMsgId
+    });
+
+    const userMsgContent = messages.value[pendingRollbackUserMsgIndex].content;
+    messages.value = messages.value.slice(0, pendingRollbackUserMsgIndex);
+
+    inputText.value = userMsgContent;
+
+    await nextTick();
+    scrollToBottom();
+  } catch (err) {
+    console.error('Rollback failed:', err);
+  } finally {
+    isRollingBack.value = false;
+    pendingRollbackUserMsgId = null;
+    pendingRollbackUserMsgIndex = null;
+  }
+}
 
 function scrollToBottom() {
   nextTick(() => {
@@ -130,11 +203,10 @@ function loadModelConfig(modelId: string) {
 }
 
 async function sendChatMessage(text: string) {
-  if (isStreaming.value || !text.trim()) return;
+  if (isStreaming.value || isRollingBack.value || !text.trim()) return;
 
   const mode = route.query.mode as string || 'chat';
   const modelId = route.query.modelId as string || '';
-  const sessionId = route.query.sessionId as string || '';
   const model = loadModelConfig(modelId);
 
   if (!model) {
@@ -199,7 +271,7 @@ async function loadSessionHistory(sessionId: string) {
 }
 
 async function triggerAiResponse() {
-  if (isStreaming.value) return;
+  if (isStreaming.value || isRollingBack.value) return;
 
   const mode = route.query.mode as string || 'chat';
   const modelId = route.query.modelId as string || '';
@@ -283,7 +355,7 @@ onMounted(async () => {
     }
   );
 
-  unlistenDone = await listen<{ requestId: string; sessionId?: string; fullContent: string; messageId?: number }>(
+  unlistenDone = await listen<{ requestId: string; sessionId?: string; fullContent: string; messageId?: number; userMessageId?: number }>(
     'chat-done',
     (event) => {
       if (event.payload.requestId !== activeRequestId) return;
@@ -291,6 +363,16 @@ onMounted(async () => {
       isDoneReceived = true;
 
       isStreaming.value = false;
+
+      if (event.payload.userMessageId) {
+        for (let i = messages.value.length - 1; i >= 0; i--) {
+          if (messages.value[i].role === 'user' && !messages.value[i].id) {
+            messages.value[i].id = event.payload.userMessageId;
+            break;
+          }
+        }
+      }
+
       if (streamingContent.value || event.payload.fullContent) {
         messages.value.push({
           role: 'assistant',

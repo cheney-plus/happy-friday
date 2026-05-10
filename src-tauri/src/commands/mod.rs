@@ -70,7 +70,7 @@ pub async fn chat_with_memory(
     model: ModelConfig,
     message: String,
 ) -> AppResult<ChatResult> {
-    let (session, history_messages, is_new_session) = {
+    let (session, history_messages, is_new_session, user_message_id) = {
         let conn = db.0.lock().map_err(|e| crate::error::AppError::Database(e.to_string()))?;
 
         let (session, is_new) = if session_id.is_empty() {
@@ -81,7 +81,7 @@ pub async fn chat_with_memory(
             (existing, false)
         };
 
-        db::save_message(&conn, &session.id, "user", &message)?;
+        let user_msg = db::save_message(&conn, &session.id, "user", &message)?;
         db::update_session_timestamp(&conn, &session.id)?;
 
         let db_messages = db::get_messages(&conn, &session.id)?;
@@ -93,7 +93,7 @@ pub async fn chat_with_memory(
             })
             .collect();
 
-        (session, history, is_new)
+        (session, history, is_new, user_msg.id)
     };
 
     let app_config = load_config(&app)?;
@@ -126,6 +126,7 @@ pub async fn chat_with_memory(
             session_id: Some(session.id.clone()),
             full_content: full_content.clone(),
             message_id: Some(assistant_message.id),
+            user_message_id: Some(user_message_id),
         },
     );
 
@@ -179,7 +180,18 @@ pub async fn chat_without_memory(
         },
     ];
 
-    llm::stream_chat(&app, messages, &model, &request_id, None).await?;
+    let full_content = llm::stream_chat(&app, messages, &model, &request_id, None).await?;
+
+    let _ = app.emit(
+        CHAT_DONE,
+        ChatDonePayload {
+            request_id: request_id.clone(),
+            session_id: None,
+            full_content,
+            message_id: None,
+            user_message_id: None,
+        },
+    );
 
     Ok(())
 }

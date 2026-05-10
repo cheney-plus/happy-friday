@@ -88,6 +88,8 @@ pub struct ChatDonePayload {
     pub full_content: String,
     #[serde(rename = "messageId")]
     pub message_id: Option<i64>,
+    #[serde(rename = "userMessageId")]
+    pub user_message_id: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

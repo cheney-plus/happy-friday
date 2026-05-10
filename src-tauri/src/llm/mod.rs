@@ -4,9 +4,9 @@ use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter};
 
 use crate::error::AppError;
-use crate::events::{CHAT_CHUNK, CHAT_DONE, CHAT_ERROR};
+use crate::events::{CHAT_CHUNK, CHAT_ERROR};
 use crate::types::{
-    ChatChunkPayload, ChatDonePayload, ChatErrorPayload, ChatMessage, ModelConfig,
+    ChatChunkPayload, ChatErrorPayload, ChatMessage, ModelConfig,
 };
 
 fn build_api_url(base_url: &str) -> String {
@@ -77,15 +77,6 @@ pub async fn stream_chat(
                 let data = data.trim();
 
                 if data == "[DONE]" {
-                    let _ = app.emit(
-                        CHAT_DONE,
-                        ChatDonePayload {
-                            request_id: request_id.to_string(),
-                            session_id: session_id.map(|s| s.to_string()),
-                            full_content: full_content.clone(),
-                            message_id: None,
-                        },
-                    );
                     return Ok(full_content);
                 }
 
@@ -122,16 +113,6 @@ pub async fn stream_chat(
             }
         }
     }
-
-    let _ = app.emit(
-        CHAT_DONE,
-        ChatDonePayload {
-            request_id: request_id.to_string(),
-            session_id: session_id.map(|s| s.to_string()),
-            full_content: full_content.clone(),
-            message_id: None,
-        },
-    );
 
     Ok(full_content)
 }

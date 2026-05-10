@@ -171,7 +171,7 @@ pub fn get_messages(conn: &Connection, session_id: &str) -> AppResult<Vec<Messag
 
 pub fn rollback_session(conn: &Connection, session_id: &str, message_id: i64) -> AppResult<()> {
     conn.execute(
-        "DELETE FROM messages WHERE session_id = ?1 AND id > ?2",
+        "DELETE FROM messages WHERE session_id = ?1 AND id >= ?2",
         (session_id, message_id),
     )?;
     update_session_timestamp(conn, session_id)?;
@@ -319,7 +319,7 @@ mod tests {
     }
 
     #[test]
-    fn test_rollback_session_deletes_after_target() {
+    fn test_rollback_session_deletes_from_target() {
         let conn = get_test_conn();
         let session = create_session(&conn).unwrap();
 
@@ -329,6 +329,23 @@ mod tests {
         let _m4 = save_message(&conn, &session.id, "assistant", "msg4").unwrap();
 
         rollback_session(&conn, &session.id, m2.id).unwrap();
+
+        let messages = get_messages(&conn, &session.id).unwrap();
+        assert_eq!(messages.len(), 1);
+        assert_eq!(messages[0].content, "msg1");
+    }
+
+    #[test]
+    fn test_rollback_session_deletes_user_message() {
+        let conn = get_test_conn();
+        let session = create_session(&conn).unwrap();
+
+        let _m1 = save_message(&conn, &session.id, "user", "msg1").unwrap();
+        let _m2 = save_message(&conn, &session.id, "assistant", "msg2").unwrap();
+        let m3 = save_message(&conn, &session.id, "user", "msg3").unwrap();
+        let _m4 = save_message(&conn, &session.id, "assistant", "msg4").unwrap();
+
+        rollback_session(&conn, &session.id, m3.id).unwrap();
 
         let messages = get_messages(&conn, &session.id).unwrap();
         assert_eq!(messages.len(), 2);
