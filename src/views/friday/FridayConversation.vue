@@ -31,6 +31,7 @@
             v-else
             :content="msg.content"
             :show-divider="true"
+            :show-rollback="currentMode === 'chat'"
             @action="(type) => handleAction(type, index)"
           />
         </template>
@@ -40,6 +41,7 @@
           :content="streamingContent"
           :is-streaming="true"
           :show-divider="false"
+          :show-rollback="currentMode === 'chat'"
         />
       </div>
     </main>

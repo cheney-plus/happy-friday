@@ -319,6 +319,7 @@ const handleSend = async () => {
   } else if (currentMode.value === 'memoryless' && selectedModel) {
     router.push({
       name: 'friday-chat',
+      params: { sessionId: `new-${Date.now()}` },
       query: {
         q: text,
         mode: currentMode.value,

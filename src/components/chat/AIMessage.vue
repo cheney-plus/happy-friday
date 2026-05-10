@@ -14,7 +14,7 @@
       </div>
 
       <div v-if="!isStreaming" class="ai-footer">
-        <button class="action-icon-btn" title="分享" @click="$emit('action', 'share')">
+        <button class="action-icon-btn" @click="$emit('action', 'share')">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="18" cy="5" r="3"></circle>
             <circle cx="6" cy="12" r="3"></circle>
@@ -22,25 +22,32 @@
             <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
             <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
           </svg>
+          <span class="tooltip">分享</span>
         </button>
-        <button class="action-icon-btn" title="添加" @click="$emit('action', 'add')">
+        <button class="action-icon-btn" @click="$emit('action', 'add')">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="8" x2="12" y2="16"></line>
             <line x1="8" y1="12" x2="16" y2="12"></line>
           </svg>
+          <span class="tooltip">保存</span>
         </button>
-        <button class="action-icon-btn" title="复制" @click="handleCopy">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button class="action-icon-btn" :class="{ 'copied': copied }" @click="handleCopy">
+          <svg v-if="!copied" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
           </svg>
+          <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span class="tooltip">{{ copied ? '已复制' : '复制' }}</span>
         </button>
-        <button class="action-icon-btn" title="回退" @click="$emit('action', 'rollback')">
+        <button v-if="showRollback" class="action-icon-btn" @click="$emit('action', 'rollback')">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="9 14 4 9 9 4"></polyline>
             <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
           </svg>
+          <span class="tooltip">回退</span>
         </button>
       </div>
     </div>
@@ -50,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { marked } from 'marked';
 
 marked.setOptions({ breaks: true, gfm: true });
@@ -60,22 +67,49 @@ const props = withDefaults(defineProps<{
   displayName?: string;
   showDivider?: boolean;
   isStreaming?: boolean;
+  showRollback?: boolean;
 }>(), {
   displayName: '周五',
   showDivider: true,
-  isStreaming: false
+  isStreaming: false,
+  showRollback: true
 });
 
 defineEmits<{
   (e: 'action', type: string): void;
 }>();
 
+const copied = ref(false);
+
 const renderedContent = computed(() => marked.parse(props.content) as string);
+
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, (match) => match.replace(/```.*\n?/g, ''))
+    .replace(/`[^`]+`/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    .replace(/~~([^~]+)~~/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^\s*[-*+]\s+/gm, '')
+    .replace(/^\s*\d+\.\s+/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 async function handleCopy() {
   try {
-    await navigator.clipboard.writeText(props.content);
-  } catch {
+    const textToCopy = stripMarkdown(props.content);
+    await navigator.clipboard.writeText(textToCopy);
+    copied.value = true;
+    setTimeout(() => {
+      copied.value = false;
+    }, 2000);
+  } catch (err) {
+    console.error('Failed to copy:', err);
   }
 }
 </script>
@@ -266,11 +300,53 @@ async function handleCopy() {
   cursor: pointer;
   border-radius: 8px;
   transition: all 0.15s ease;
+  position: relative;
 }
 
 .action-icon-btn:hover {
   background: var(--bg-hover);
   color: var(--text-secondary);
+}
+
+.action-icon-btn.copied {
+  color: #10b981;
+}
+
+.action-icon-btn.copied:hover {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #ffffff;
+  font-size: 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.8);
+}
+
+.action-icon-btn:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 
 .message-divider {
