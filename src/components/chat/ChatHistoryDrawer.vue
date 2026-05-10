@@ -321,7 +321,7 @@ defineExpose({ loadSessions });
 
 .drawer-toggle-btn {
   position: fixed;
-  top: calc(var(--tab-bar-height, 46px) + 12px);
+  top: calc(var(--tab-bar-height, 46px) + 0px);
   right: 16px;
   z-index: 100;
   display: flex;
@@ -329,13 +329,12 @@ defineExpose({ loadSessions });
   justify-content: center;
   width: 38px;
   height: 38px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  color: #6b7280;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
   cursor: pointer;
   border-radius: 12px;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
 .drawer-toggle-btn.hidden {
@@ -344,22 +343,20 @@ defineExpose({ loadSessions });
 }
 
 .drawer-toggle-btn:hover {
-  background: #f9fafb;
-  color: #374151;
-  border-color: #d1d5db;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
 }
 
 .drawer-toggle-btn.active {
-  background: #f3f4f6;
-  color: #1a1a1a;
-  border-color: #d1d5db;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .history-drawer {
   position: fixed;
   top: calc(var(--tab-bar-height, 46px) + 12px);
   right: 12px;
-  bottom: 12px;
+  bottom: 30px;
   width: 200px;
   background: #ffffff;
   border: 1px solid #e5e7eb;
