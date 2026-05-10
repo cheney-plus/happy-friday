@@ -1,3 +1,4 @@
+use tauri::Manager;
 mod config;
 mod commands;
 mod db;
