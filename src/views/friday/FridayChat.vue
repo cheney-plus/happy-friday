@@ -397,7 +397,7 @@ const handleFeatureClick = (id: string) => {
   height: 100%;
   width: 100%;
   padding: 40px 20px;
-  background-color: var(--bg-primary);
+  background-color: var(--bg-sidebar);
   overflow: hidden;
 }
 
