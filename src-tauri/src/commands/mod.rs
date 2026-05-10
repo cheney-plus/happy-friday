@@ -6,7 +6,7 @@ use crate::error::AppResult;
 use crate::events::{CHAT_DONE, CONFIG_CHANGED, SESSION_TITLE_UPDATED};
 use crate::llm;
 use crate::types::{
-    AppConfig, ChatDonePayload, ChatMessage, ChatResult, Message, ModelConfig, Session,
+    AppConfig, ChatDonePayload, ChatMessage, ChatResult, Message, ModelConfig, Note, Session,
 };
 
 #[command]
@@ -196,6 +196,52 @@ pub async fn chat_without_memory(
     Ok(())
 }
 
+#[command]
+pub fn get_notes(db: State<'_, DbState>, knowledge_base_id: Option<String>) -> AppResult<Vec<Note>> {
+    let conn = db.0.lock().map_err(|e| crate::error::AppError::Database(e.to_string()))?;
+    db::get_notes(&conn, knowledge_base_id.as_deref())
+}
+
+#[command]
+pub fn get_note(db: State<'_, DbState>, note_id: String) -> AppResult<Option<Note>> {
+    let conn = db.0.lock().map_err(|e| crate::error::AppError::Database(e.to_string()))?;
+    db::get_note(&conn, &note_id)
+}
+
+#[command]
+pub fn create_note(
+    db: State<'_, DbState>,
+    knowledge_base_id: Option<String>,
+    title: Option<String>,
+) -> AppResult<Note> {
+    let conn = db.0.lock().map_err(|e| crate::error::AppError::Database(e.to_string()))?;
+    db::create_note(&conn, knowledge_base_id.as_deref(), title.as_deref().unwrap_or("新建笔记"))
+}
+
+#[command]
+pub fn update_note(
+    db: State<'_, DbState>,
+    note_id: String,
+    title: String,
+    content: String,
+    content_text: String,
+) -> AppResult<()> {
+    let conn = db.0.lock().map_err(|e| crate::error::AppError::Database(e.to_string()))?;
+    db::update_note(&conn, &note_id, &title, &content, &content_text)
+}
+
+#[command]
+pub fn delete_note(db: State<'_, DbState>, note_id: String) -> AppResult<()> {
+    let conn = db.0.lock().map_err(|e| crate::error::AppError::Database(e.to_string()))?;
+    db::soft_delete_note(&conn, &note_id)
+}
+
+#[command]
+pub fn search_notes(db: State<'_, DbState>, query: String) -> AppResult<Vec<Note>> {
+    let conn = db.0.lock().map_err(|e| crate::error::AppError::Database(e.to_string()))?;
+    db::search_notes(&conn, &query)
+}
+
 pub fn get_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool {
     tauri::generate_handler![
         get_config,
@@ -207,6 +253,12 @@ pub fn get_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool {
         get_session_messages,
         update_session_title,
         chat_with_memory,
-        chat_without_memory
+        chat_without_memory,
+        get_notes,
+        get_note,
+        create_note,
+        update_note,
+        delete_note,
+        search_notes
     ]
 }

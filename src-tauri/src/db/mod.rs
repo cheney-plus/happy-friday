@@ -5,7 +5,7 @@ use rusqlite::Connection;
 use tauri::{AppHandle, Manager};
 
 use crate::error::{AppError, AppResult};
-use crate::types::{Message, Session};
+use crate::types::{Message, Note, Session};
 
 pub struct DbState(pub Mutex<Connection>);
 
@@ -45,7 +45,22 @@ pub fn init_db(app: &AppHandle) -> AppResult<()> {
         );
 
         CREATE INDEX IF NOT EXISTS idx_messages_session_id ON messages(session_id);
-        CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);",
+        CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
+
+        CREATE TABLE IF NOT EXISTS notes (
+            id TEXT PRIMARY KEY,
+            knowledge_base_id TEXT,
+            title TEXT NOT NULL DEFAULT '',
+            content TEXT NOT NULL DEFAULT '',
+            content_text TEXT NOT NULL DEFAULT '',
+            is_deleted INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_notes_knowledge_base_id ON notes(knowledge_base_id);
+        CREATE INDEX IF NOT EXISTS idx_notes_is_deleted ON notes(is_deleted);
+        CREATE INDEX IF NOT EXISTS idx_notes_updated_at ON notes(updated_at);",
     )?;
 
     app.manage(DbState(Mutex::new(conn)));
@@ -176,6 +191,117 @@ pub fn rollback_session(conn: &Connection, session_id: &str, message_id: i64) ->
     )?;
     update_session_timestamp(conn, session_id)?;
     Ok(())
+}
+
+pub fn create_note(conn: &Connection, knowledge_base_id: Option<&str>, title: &str) -> AppResult<Note> {
+    let id = uuid::Uuid::new_v4().to_string();
+    let now = Utc::now().to_rfc3339();
+
+    conn.execute(
+        "INSERT INTO notes (id, knowledge_base_id, title, content, content_text, is_deleted, created_at, updated_at) VALUES (?1, ?2, ?3, '', '', 0, ?4, ?5)",
+        (&id, &knowledge_base_id, title, &now, &now),
+    )?;
+
+    Ok(Note {
+        id,
+        knowledge_base_id: knowledge_base_id.map(|s| s.to_string()),
+        title: title.to_string(),
+        content: String::new(),
+        content_text: String::new(),
+        is_deleted: false,
+        created_at: now.clone(),
+        updated_at: now,
+    })
+}
+
+pub fn get_notes(conn: &Connection, knowledge_base_id: Option<&str>) -> AppResult<Vec<Note>> {
+    let map_row = |row: &rusqlite::Row| -> rusqlite::Result<Note> {
+        Ok(Note {
+            id: row.get(0)?,
+            knowledge_base_id: row.get(1)?,
+            title: row.get(2)?,
+            content: row.get(3)?,
+            content_text: row.get(4)?,
+            is_deleted: row.get::<_, i32>(5)? != 0,
+            created_at: row.get(6)?,
+            updated_at: row.get(7)?,
+        })
+    };
+
+    if let Some(kb_id) = knowledge_base_id {
+        let mut stmt = conn.prepare(
+            "SELECT id, knowledge_base_id, title, content, content_text, is_deleted, created_at, updated_at FROM notes WHERE is_deleted = 0 AND knowledge_base_id = ?1 ORDER BY updated_at DESC",
+        )?;
+        let rows = stmt.query_map([kb_id], map_row)?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    } else {
+        let mut stmt = conn.prepare(
+            "SELECT id, knowledge_base_id, title, content, content_text, is_deleted, created_at, updated_at FROM notes WHERE is_deleted = 0 ORDER BY updated_at DESC",
+        )?;
+        let rows = stmt.query_map([], map_row)?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+}
+
+pub fn get_note(conn: &Connection, note_id: &str) -> AppResult<Option<Note>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, knowledge_base_id, title, content, content_text, is_deleted, created_at, updated_at FROM notes WHERE id = ?1 AND is_deleted = 0",
+    )?;
+
+    let mut notes = stmt.query_map([note_id], |row| {
+        Ok(Note {
+            id: row.get(0)?,
+            knowledge_base_id: row.get(1)?,
+            title: row.get(2)?,
+            content: row.get(3)?,
+            content_text: row.get(4)?,
+            is_deleted: row.get::<_, i32>(5)? != 0,
+            created_at: row.get(6)?,
+            updated_at: row.get(7)?,
+        })
+    })?.collect::<Result<Vec<_>, _>>()?;
+
+    Ok(notes.pop())
+}
+
+pub fn update_note(conn: &Connection, note_id: &str, title: &str, content: &str, content_text: &str) -> AppResult<()> {
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        "UPDATE notes SET title = ?1, content = ?2, content_text = ?3, updated_at = ?4 WHERE id = ?5",
+        (title, content, content_text, &now, note_id),
+    )?;
+    Ok(())
+}
+
+pub fn soft_delete_note(conn: &Connection, note_id: &str) -> AppResult<()> {
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        "UPDATE notes SET is_deleted = 1, updated_at = ?1 WHERE id = ?2",
+        (&now, note_id),
+    )?;
+    Ok(())
+}
+
+pub fn search_notes(conn: &Connection, query: &str) -> AppResult<Vec<Note>> {
+    let pattern = format!("%{}%", query);
+    let mut stmt = conn.prepare(
+        "SELECT id, knowledge_base_id, title, content, content_text, is_deleted, created_at, updated_at FROM notes WHERE is_deleted = 0 AND (title LIKE ?1 OR content_text LIKE ?1) ORDER BY updated_at DESC",
+    )?;
+
+    let notes = stmt.query_map([&pattern], |row| {
+        Ok(Note {
+            id: row.get(0)?,
+            knowledge_base_id: row.get(1)?,
+            title: row.get(2)?,
+            content: row.get(3)?,
+            content_text: row.get(4)?,
+            is_deleted: row.get::<_, i32>(5)? != 0,
+            created_at: row.get(6)?,
+            updated_at: row.get(7)?,
+        })
+    })?.collect::<Result<Vec<_>, _>>()?;
+
+    Ok(notes)
 }
 
 #[cfg(test)]

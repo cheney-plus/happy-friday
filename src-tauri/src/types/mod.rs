@@ -102,6 +102,23 @@ pub struct ChatErrorPayload {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Note {
+    pub id: String,
+    #[serde(rename = "knowledgeBaseId")]
+    pub knowledge_base_id: Option<String>,
+    pub title: String,
+    pub content: String,
+    #[serde(rename = "contentText")]
+    pub content_text: String,
+    #[serde(rename = "isDeleted")]
+    pub is_deleted: bool,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SessionTitlePayload {
     #[serde(rename = "sessionId")]
     pub session_id: String,

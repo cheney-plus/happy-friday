@@ -68,16 +68,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, reactive, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAppStore } from '@/store';
+import { useNoteStore } from '@/store/modules/note';
 import NoteEditor from './NoteEditor.vue';
 
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 const appStore = useAppStore();
+const noteStore = useNoteStore();
 
 const noteId = computed(() => route.params.id as string);
 const isDark = computed(() => appStore.theme === 'dark');
@@ -93,6 +95,7 @@ const moreMenuStyle = reactive({ left: '0px', top: '0px' });
 const onEditorChange = (content: string) => {
   updateStats(content);
   isSaved.value = false;
+  scheduleSave();
 };
 
 const updateStats = (content: string) => {
@@ -101,12 +104,22 @@ const updateStats = (content: string) => {
   charCount.value = text.length;
 };
 
-const goBack = () => {
+const scheduleSave = () => {
+  const id = noteId.value;
+  if (!id) return;
+  const contentText = noteContent.value.replace(/[#*`\[\]()>|_~-]/g, '').replace(/\n+/g, ' ').trim();
+  noteStore.scheduleSave(id, noteTitle.value, noteContent.value, contentText);
+  isSaved.value = false;
+};
+
+const goBack = async () => {
+  await noteStore.flushPendingSave();
   router.push({ name: 'note' });
 };
 
 const onTitleChange = () => {
   isSaved.value = false;
+  scheduleSave();
 };
 
 const handleExport = () => {
@@ -136,8 +149,12 @@ const handleCopyContent = () => {
   moreMenuVisible.value = false;
 };
 
-const handleDelete = () => {
+const handleDelete = async () => {
   moreMenuVisible.value = false;
+  const id = noteId.value;
+  if (id) {
+    await noteStore.deleteNote(id);
+  }
   router.push({ name: 'note' });
 };
 
@@ -147,12 +164,29 @@ const handleClickOutside = () => {
   }
 };
 
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside);
+watch(() => noteStore.saving, (saving) => {
+  if (!saving) {
+    isSaved.value = true;
+    lastSavedTime.value = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  }
 });
 
-onBeforeUnmount(() => {
+onMounted(async () => {
+  document.addEventListener('click', handleClickOutside);
+  const id = noteId.value;
+  if (id) {
+    const note = await noteStore.fetchNote(id);
+    if (note) {
+      noteTitle.value = note.title;
+      noteContent.value = note.content;
+      updateStats(noteContent.value);
+    }
+  }
+});
+
+onBeforeUnmount(async () => {
   document.removeEventListener('click', handleClickOutside);
+  await noteStore.flushPendingSave();
 });
 </script>
 

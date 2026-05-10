@@ -70,11 +70,11 @@
         >
           <div class="note-title">{{ note.title }}</div>
           <div class="note-meta">
-            <span class="note-time">{{ note.time }}</span>
-            <span class="note-subtitle">{{ note.subtitle }}</span>
-            <span v-if="note.extra" class="note-extra">
+            <span class="note-time">{{ formatTime(note.updatedAt) }}</span>
+            <span class="note-subtitle">{{ getContentPreview(note.contentText) }}</span>
+            <span v-if="note.knowledgeBaseId" class="note-extra">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>
-              {{ note.extra }}
+              {{ note.knowledgeBaseId }}
             </span>
           </div>
         </div>
@@ -124,7 +124,7 @@
     <div class="note-editor-area">
       <div v-if="selectedNote" class="editor-container">
         <NoteEditor
-          :key="selectedNoteId"
+          :key="selectedNoteId!"
           v-model="selectedNote.content"
           :placeholder="t('note.editorPlaceholder')"
           @change="onEditorChange"
@@ -144,17 +144,10 @@
 import { reactive, ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import NoteEditor from './NoteEditor.vue';
+import { useNoteStore, type Note } from '@/store/modules/note';
 
 const { t } = useI18n();
-
-interface Note {
-  id: number;
-  title: string;
-  time: string;
-  subtitle: string;
-  extra?: string;
-  content: string;
-}
+const noteStore = useNoteStore();
 
 interface Folder {
   id: string;
@@ -163,7 +156,6 @@ interface Folder {
 }
 
 const currentFolder = ref('all');
-const selectedNoteId = ref(3);
 const folderMenuVisible = ref(false);
 const folderTriggerRef = ref<HTMLElement | null>(null);
 
@@ -188,12 +180,18 @@ const enterSearchMode = () => {
   });
 };
 
-const exitSearchMode = () => {
+const exitSearchMode = async () => {
   searchMode.value = false;
   searchQuery.value = '';
+  await noteStore.fetchNotes();
 };
 
-const onSearch = () => {
+const onSearch = async () => {
+  if (searchQuery.value.trim()) {
+    await noteStore.searchNotes(searchQuery.value.trim());
+  } else {
+    await noteStore.fetchNotes();
+  }
 };
 
 const onResizeStart = (e: MouseEvent) => {
@@ -223,9 +221,7 @@ const onResizeStart = (e: MouseEvent) => {
 };
 
 const folders = reactive<Folder[]>([
-  { id: 'all', name: '全部', count: 13 },
-  { id: '123', name: '123', count: 1 },
-  { id: 'freya', name: 'freya 项目', count: 1 }
+  { id: 'all', name: '全部', count: 0 },
 ]);
 
 const currentFolderName = computed(() => {
@@ -233,47 +229,51 @@ const currentFolderName = computed(() => {
   return f ? f.name : '全部';
 });
 
-const notes = reactive<Note[]>([
-  { id: 3, title: '项目规划', time: '26分钟前', subtitle: '无附加文本', content: '# 项目规划\n\n## 目标\n\n- 完成核心功能开发\n- 优化用户体验\n- 提升系统性能\n\n## 时间线\n\n第一阶段：基础架构搭建\n\n第二阶段：功能实现\n\n第三阶段：测试与优化' },
-  { id: 4, title: '会议记录', time: '26分钟前', subtitle: '无附加文本', content: '# 会议记录\n\n**日期**：2026年4月30日\n\n**参会人**：产品组全员\n\n## 议题\n\n1. 需求评审\n2. 进度同步\n3. 风险评估\n\n## 结论\n\n- 需求已确认\n- 下周进入开发阶段' },
-  { id: 5, title: '技术方案', time: '26分钟前', subtitle: '无附加文本', content: '# 技术方案\n\n## 架构设计\n\n采用微服务架构，主要模块包括：\n\n- **API 网关**：统一入口\n- **用户服务**：认证与授权\n- **业务服务**：核心业务逻辑\n\n## 技术选型\n\n| 模块 | 技术 | 版本 |\n|------|------|------|\n| 前端 | Vue 3 | 3.4 |\n| 后端 | Node.js | 20 |\n| 数据库 | PostgreSQL | 16 |' },
-  { id: 6, title: '学习笔记', time: '26分钟前', subtitle: '无附加文本', content: '# 学习笔记\n\n## TypeScript 高级类型\n\n### 条件类型\n\n```typescript\ntype IsString<T> = T extends string ? true : false;\n```\n\n### 映射类型\n\n```typescript\ntype Readonly<T> = {\n  readonly [P in keyof T]: T[P];\n};\n```\n\n> 类型系统是 TypeScript 最强大的特性之一。' },
-  { id: 7, title: '周报', time: '26分钟前', subtitle: '无附加文本', content: '# 本周工作总结\n\n## 已完成\n\n- [x] 用户模块重构\n- [x] API 文档更新\n- [x] 性能优化方案\n\n## 进行中\n\n- [ ] 编辑器集成\n- [ ] 数据迁移脚本\n\n## 下周计划\n\n1. 完成编辑器功能\n2. 开始集成测试\n3. 准备发布环境' },
-  { id: 8, title: '读书笔记', time: '26分钟前', subtitle: '无附加文本', content: '# 读书笔记\n\n## 《设计模式》\n\n### 观察者模式\n\n定义对象间一对多的依赖关系，当一个对象状态改变时，所有依赖它的对象都会收到通知。\n\n### 策略模式\n\n定义一系列算法，把它们一个个封装起来，并使它们可互相替换。\n\n---\n\n*阅读进度：第 7 章*' },
-  { id: 9, title: '需求文档', time: '26分钟前', subtitle: '无附加文本', content: '# 需求文档\n\n## 功能需求\n\n### FR-001 用户登录\n\n**描述**：用户可以通过邮箱和密码登录系统\n\n**优先级**：高\n\n### FR-002 笔记管理\n\n**描述**：用户可以创建、编辑、删除笔记\n\n**优先级**：高\n\n## 非功能需求\n\n- 响应时间 < 200ms\n- 支持 1000 并发用户' },
-  { id: 10, title: '灵感记录', time: '26分钟前', subtitle: '无附加文本', content: '# 灵感记录\n\n## 产品想法\n\n一个基于 AI 的智能笔记应用，能够：\n\n- 自动整理笔记内容\n- 智能推荐相关笔记\n- 生成摘要和思维导图\n\n## 设计灵感\n\n极简主义风格，注重内容本身，减少视觉干扰。\n\n> 好的工具应该是隐形的。' },
-  { id: 11, title: 'API 设计', time: '26分钟前', subtitle: '无附加文本', content: '# API 设计文档\n\n## 笔记相关接口\n\n### 获取笔记列表\n\n```\nGET /api/notes\n```\n\n### 创建笔记\n\n```\nPOST /api/notes\nBody: { title: string, content: string }\n```\n\n### 更新笔记\n\n```\nPUT /api/notes/:id\nBody: { title?: string, content?: string }\n```' },
-  { id: 12, title: '项目配置', time: '26分钟前', subtitle: '无附加文本', extra: '123', content: '# 项目配置\n\n## 环境变量\n\n| 变量名 | 说明 | 默认值 |\n|--------|------|--------|\n| PORT | 服务端口 | 3000 |\n| DB_URL | 数据库地址 | localhost |\n| REDIS_URL | 缓存地址 | localhost |\n\n## 构建命令\n\n- `pnpm dev` - 开发模式\n- `pnpm build` - 生产构建\n- `pnpm preview` - 预览构建结果' },
-  { id: 13, title: '代码规范', time: '26分钟前', subtitle: '无附加文本', content: '# 代码规范\n\n## 命名约定\n\n- **组件**：PascalCase（如 `NoteList`）\n- **函数**：camelCase（如 `getData`）\n- **常量**：UPPER_SNAKE_CASE（如 `MAX_COUNT`）\n\n## Git 规范\n\n提交信息格式：\n\n```\ntype(scope): description\n```\n\n类型包括：feat, fix, docs, style, refactor, test, chore' },
-  { id: 14, title: '部署方案', time: '26分钟前', subtitle: '无附加文本', content: '# 部署方案\n\n## 架构图\n\n```\n用户 → CDN → Nginx → Node.js → PostgreSQL\n                    ↓\n                  Redis\n```\n\n## 部署步骤\n\n1. 构建前端资源\n2. 推送 Docker 镜像\n3. 更新 K8s 配置\n4. 滚动更新服务\n5. 验证部署结果' },
-  { id: 15, title: '测试计划', time: '26分钟前', subtitle: '无附加文本', content: '# 测试计划\n\n## 单元测试\n\n覆盖核心业务逻辑，目标覆盖率 > 80%\n\n## 集成测试\n\n- API 接口测试\n- 数据库操作测试\n- 第三方服务 Mock 测试\n\n## E2E 测试\n\n模拟用户操作流程：\n\n1. 登录 → 创建笔记 → 编辑 → 保存\n2. 搜索笔记 → 查看结果\n3. 删除笔记 → 确认删除' }
-]);
+const notes = computed(() => noteStore.notes);
+const selectedNoteId = computed(() => noteStore.currentNoteId);
+const selectedNote = computed(() => noteStore.currentNote);
 
-const selectedNote = computed(() => notes.find(n => n.id === selectedNoteId.value));
-
-const selectNote = (id: number) => {
-  selectedNoteId.value = id;
+const formatTime = (dateStr: string) => {
+  try {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return '刚刚';
+    if (diffMin < 60) return `${diffMin}分钟前`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour}小时前`;
+    const diffDay = Math.floor(diffHour / 24);
+    if (diffDay < 30) return `${diffDay}天前`;
+    return date.toLocaleDateString('zh-CN');
+  } catch {
+    return '';
+  }
 };
 
-const createNewNote = () => {
-  const newId = Math.max(...notes.map(n => n.id)) + 1;
-  notes.unshift({
-    id: newId,
-    title: '新建笔记',
-    time: '刚刚',
-    subtitle: '无附加文本',
-    content: '# 新建笔记\n\n',
-  });
-  selectedNoteId.value = newId;
+const getContentPreview = (contentText: string) => {
+  const text = contentText.trim();
+  if (!text) return '无附加文本';
+  return text.length > 30 ? text.slice(0, 30) + '...' : text;
+};
+
+const selectNote = (id: string) => {
+  noteStore.selectNote(id);
+};
+
+const createNewNote = async () => {
+  await noteStore.createNote();
 };
 
 const onEditorChange = (content: string) => {
-  if (selectedNote.value) {
-    const titleMatch = content.match(/^#\s+(.+)/m);
-    if (titleMatch) {
-      selectedNote.value.title = titleMatch[1].trim();
-    }
-  }
+  const note = noteStore.currentNote;
+  if (!note) return;
+
+  const titleMatch = content.match(/^#\s+(.+)/m);
+  const title = titleMatch ? titleMatch[1].trim() : note.title;
+  const contentText = content.replace(/[#*`\[\]()>|_~-]/g, '').replace(/\n+/g, ' ').trim();
+
+  noteStore.scheduleSave(note.id, title, content, contentText);
 };
 
 let folderMenuStyle = reactive({ left: '0px', top: '0px' });
@@ -301,7 +301,7 @@ const contextMenu = reactive({
   visible: false,
   x: 0,
   y: 0,
-  targetNote: null as Note | null,
+  targetNoteId: null as string | null,
   get style() {
     return {
       left: `${this.x}px`,
@@ -314,23 +314,17 @@ const showContextMenu = (e: MouseEvent, note: Note) => {
   contextMenu.visible = true;
   contextMenu.x = e.clientX;
   contextMenu.y = e.clientY;
-  contextMenu.targetNote = note;
+  contextMenu.targetNoteId = note.id;
 };
 
 const hideContextMenu = () => {
   contextMenu.visible = false;
-  contextMenu.targetNote = null;
+  contextMenu.targetNoteId = null;
 };
 
-const handleAction = (action: string) => {
-  if (action === 'delete' && contextMenu.targetNote) {
-    const idx = notes.findIndex(n => n.id === contextMenu.targetNote!.id);
-    if (idx !== -1) {
-      notes.splice(idx, 1);
-      if (selectedNoteId.value === contextMenu.targetNote!.id) {
-        selectedNoteId.value = notes.length > 0 ? notes[0].id : 0;
-      }
-    }
+const handleAction = async (action: string) => {
+  if (action === 'delete' && contextMenu.targetNoteId) {
+    await noteStore.deleteNote(contextMenu.targetNoteId);
   }
   hideContextMenu();
 };
@@ -342,12 +336,17 @@ const handleClickOutside = () => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('click', handleClickOutside);
+  await noteStore.fetchNotes();
+  if (noteStore.notes.length > 0 && !noteStore.currentNoteId) {
+    noteStore.selectNote(noteStore.notes[0].id);
+  }
 });
 
-onBeforeUnmount(() => {
+onBeforeUnmount(async () => {
   document.removeEventListener('click', handleClickOutside);
+  await noteStore.flushPendingSave();
 });
 </script>
 
