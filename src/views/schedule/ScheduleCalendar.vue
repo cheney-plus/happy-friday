@@ -54,10 +54,11 @@
                 v-for="event in getEventsForDate(cell.date).slice(0, 3)"
                 :key="event.id"
                 class="cell-event"
-                :style="{ backgroundColor: event.color + '18', color: event.color, borderLeftColor: event.color }"
+                :style="{ backgroundColor: getEventDisplayColor(event) + '18', color: getEventDisplayColor(event), borderLeftColor: getEventDisplayColor(event) }"
                 @click.stop="onEventClick(event)"
+                @contextmenu.prevent.stop="onEventRightClick($event, event)"
               >
-                <span class="event-dot" :style="{ backgroundColor: event.color }"></span>
+                <span class="event-dot" :style="{ backgroundColor: getEventDisplayColor(event) }"></span>
                 {{ event.title }}
               </div>
               <div v-if="getEventsForDate(cell.date).length > 3" class="cell-more">
@@ -95,8 +96,9 @@
                 v-for="evt in getAllDayEventsForDate(day.date)"
                 :key="evt.id"
                 class="wk-allday-evt"
-                :style="{ backgroundColor: evt.color + '22', color: evt.color, borderLeftColor: evt.color }"
+                :style="{ backgroundColor: getEventDisplayColor(evt) + '22', color: getEventDisplayColor(evt), borderLeftColor: getEventDisplayColor(evt) }"
                 @click.stop="onEventClick(evt)"
+                @contextmenu.prevent.stop="onEventRightClick($event, evt)"
               >{{ evt.title }}</div>
             </div>
           </div>
@@ -130,6 +132,7 @@
                     class="wk-evt"
                     :style="timedEventStyle(evt)"
                     @click.stop="onEventClick(evt)"
+                    @contextmenu.prevent.stop="onEventRightClick($event, evt)"
                   >
                     <div class="wk-evt-title">{{ evt.title }}</div>
                     <div class="wk-evt-time">{{ evt.startTime }} - {{ evt.endTime }}</div>
@@ -260,6 +263,24 @@
         </div>
       </div>
     </Teleport>
+
+    <Teleport to="body">
+      <div v-if="contextMenuVisible" class="ctx-overlay" @click="contextMenuVisible = false" @contextmenu.prevent>
+        <div class="ctx-menu" :style="{ left: contextMenuPos.x + 'px', top: contextMenuPos.y + 'px' }">
+          <div v-if="contextMenuEvent" class="ctx-item" @click="toggleComplete()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="contextMenuEvent.completed ? 'var(--text-tertiary)' : '#16a34a'" stroke-width="2">
+              <polyline v-if="!contextMenuEvent.completed" points="20 6 9 17 4 12"></polyline>
+              <circle v-else cx="12" cy="12" r="10"></circle>
+            </svg>
+            {{ contextMenuEvent.completed ? t('schedule.markUncomplete') : t('schedule.markComplete') }}
+          </div>
+          <div class="ctx-item danger" @click="goToDetail()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            {{ t('schedule.viewDetail') }}
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -305,6 +326,7 @@ const formData = reactive({
   description: '',
   color: EVENT_COLORS[0],
   reminder: false,
+  completed: false,
 });
 
 const isZh = computed(() => locale.value === 'zh-CN');
@@ -402,13 +424,21 @@ function timedEventStyle(evt: ScheduleEvent) {
   const e = timeToMin(evt.endTime || '23:59');
   const top = (s / 60) * hourPx;
   const height = Math.max(((e - s) / 60) * hourPx, 22);
+  const dc = getEventDisplayColor(evt);
   return {
     top: `${top}px`,
     height: `${height}px`,
-    backgroundColor: evt.color + '18',
-    borderLeftColor: evt.color,
-    color: evt.color,
+    backgroundColor: dc + '18',
+    borderLeftColor: dc,
+    color: dc,
   };
+}
+
+function getEventDisplayColor(evt: ScheduleEvent): string {
+  if (evt.completed) return '#16a34a';
+  const today = new Date().toISOString().split('T')[0];
+  if (evt.end < today) return '#ef4444';
+  return evt.color;
 }
 
 interface MonthCell {
@@ -659,6 +689,29 @@ function onEventClick(event: ScheduleEvent) {
   router.push(`/schedule/${event.id}`);
 }
 
+const contextMenuVisible = ref(false);
+const contextMenuEvent = ref<ScheduleEvent | null>(null);
+const contextMenuPos = ref({ x: 0, y: 0 });
+
+function onEventRightClick(e: MouseEvent, evt: ScheduleEvent) {
+  e.stopPropagation();
+  contextMenuEvent.value = evt;
+  contextMenuPos.value = { x: e.clientX, y: e.clientY };
+  contextMenuVisible.value = true;
+}
+
+function toggleComplete() {
+  if (!contextMenuEvent.value) return;
+  scheduleStore.updateEvent(contextMenuEvent.value.id, { completed: !contextMenuEvent.value.completed });
+  contextMenuVisible.value = false;
+}
+
+function goToDetail() {
+  if (!contextMenuEvent.value) return;
+  contextMenuVisible.value = false;
+  router.push(`/schedule/${contextMenuEvent.value.id}`);
+}
+
 function onYearMonthClick(monthIndex: number) {
   viewMonth.value = monthIndex;
   currentView.value = 'month';
@@ -701,6 +754,7 @@ function saveEvent() {
       description: formData.description,
       color: formData.color,
       reminder: formData.reminder,
+      completed: formData.completed,
     });
   } else {
     scheduleStore.addEvent({
@@ -713,6 +767,7 @@ function saveEvent() {
       description: formData.description,
       color: formData.color,
       reminder: formData.reminder,
+      completed: formData.completed,
     });
   }
   closeModal();
@@ -1581,5 +1636,52 @@ onUnmounted(() => {
 .btn-danger {
   background: #dc2626;
   color: white;
+}
+
+.ctx-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+}
+
+.ctx-menu {
+  position: fixed;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+  padding: 5px;
+  min-width: 160px;
+  animation: ctxIn 0.15s ease;
+  z-index: 1001;
+}
+
+@keyframes ctxIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 7px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.12s;
+  color: var(--text-primary);
+  user-select: none;
+}
+
+.ctx-item:hover {
+  background-color: #f5f5f5;
+}
+
+.ctx-item.danger:hover {
+  background-color: #fef2f2;
+  color: #ef4444;
 }
 </style>

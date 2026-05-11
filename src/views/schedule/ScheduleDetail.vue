@@ -45,6 +45,15 @@
             </div>
           </div>
 
+          <div class="setting-item">
+            <span class="item-label">{{ t('schedule.status') }}</span>
+            <button class="status-toggle" @click="toggleStatus">
+              <svg v-if="event.completed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 8 12 12 15 14"></polyline></svg>
+              <span :style="{ color: event.completed ? '#16a34a' : '' }">{{ event.completed ? t('schedule.completed') : t('schedule.uncompleted') }}</span>
+            </button>
+          </div>
+
           <div v-if="event.description" class="setting-item desc-item">
             <span class="item-label">{{ t('schedule.description') }}</span>
             <p class="desc-text">{{ event.description }}</p>
@@ -188,6 +197,7 @@ const editForm = reactive({
   description: '',
   color: EVENT_COLORS[0],
   reminder: false,
+  completed: false,
 });
 
 function goBack() {
@@ -205,6 +215,7 @@ function startEdit() {
   editForm.description = event.value.description;
   editForm.color = event.value.color;
   editForm.reminder = event.value.reminder || false;
+  editForm.completed = event.value.completed || false;
   isEditing.value = true;
   nextTick(() => {
     editTitleRef.value?.focus();
@@ -227,6 +238,7 @@ function saveEdit() {
     description: editForm.description,
     color: editForm.color,
     reminder: editForm.reminder,
+    completed: editForm.completed,
   });
   isEditing.value = false;
 }
@@ -243,6 +255,11 @@ function doDelete() {
   scheduleStore.removeEvent(eventId.value);
   deleteConfirmVisible.value = false;
   goBack();
+}
+
+function toggleStatus() {
+  if (!event.value) return;
+  scheduleStore.updateEvent(eventId.value, { completed: !event.value.completed });
 }
 
 onMounted(() => {
@@ -721,5 +738,24 @@ onMounted(() => {
 
 .confirm-delete-btn:hover {
   opacity: 0.9;
+}
+
+.status-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.status-toggle:hover {
+  background-color: #ecfdf5;
 }
 </style>

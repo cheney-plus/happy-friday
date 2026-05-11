@@ -11,11 +11,12 @@ export interface ScheduleEvent {
   description: string;
   color: string;
   reminder: boolean;
+  completed: boolean;
 }
 
 export const EVENT_COLORS = [
   '#60a5fa',
-  '#4ade80',
+  '#94a3b8',
   '#fbbf24',
   '#c084fc',
   '#f87171',
@@ -23,7 +24,7 @@ export const EVENT_COLORS = [
   '#facc15',
   '#fb7185',
   '#2563eb',
-  '#16a34a',
+  '#6366f1',
   '#ea580c',
   '#9333ea',
   '#dc2626',
