@@ -1,0 +1,257 @@
+name: Build Tauri App - Multi Platform
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号 (如: 1.0.0)'
+        required: false
+        default: ''
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS Intel (x86_64)
+          - platform: macos
+            arch: x86_64
+            runner: macos-13
+            target: x86_64-apple-darwin
+            bundle_name: happy-friday-macos-x86_64
+
+          # macOS Apple Silicon (aarch64)
+          - platform: macos
+            arch: aarch64
+            runner: macos-latest
+            target: aarch64-apple-darwin
+            bundle_name: happy-friday-macos-aarch64
+
+          # Windows (x86_64)
+          - platform: windows
+            arch: x86_64
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundle_name: happy-friday-windows-x86_64
+
+          # Linux (x86_64)
+          - platform: linux
+            arch: x86_64
+            runner: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            bundle_name: happy-friday-linux-x86_64
+
+          # Linux ARM64 (aarch64)
+          - platform: linux
+            arch: aarch64
+            runner: ubuntu-24.04
+            target: aarch64-unknown-linux-gnu
+            bundle_name: happy-friday-linux-aarch64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install dependencies (Ubuntu)
+        if: matrix.runner == 'ubuntu-24.04' && matrix.arch == 'x86_64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev
+
+      - name: Install cross-compilation dependencies (Linux ARM64)
+        if: matrix.runner == 'ubuntu-24.04' && matrix.arch == 'aarch64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc-aarch64-linux-gnu \
+            pkg-config:aarch64-linux-gnu \
+            libwebkit2gtk-4.1-dev:aarch64-linux-gnu \
+            libgtk-3-dev:aarch64-linux-gnu \
+            libayatana-appindicator3-dev:aarch64-linux-gnu \
+            librsvg2-dev:aarch64-linux-gnu \
+            libssl-dev:aarch64-linux-gnu \
+            libsoup-3.0-dev:aarch64-linux-gnu \
+            libjavascriptcoregtk-4.1-dev:aarch64-linux-gnu
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      - name: Set environment variables for Linux ARM64 cross-compilation
+        if: matrix.runner == 'ubuntu-24.04' && matrix.arch == 'aarch64'
+        run: |
+          echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_AR=aarch64-linux-gnu-ar" >> $GITHUB_ENV
+          shell: bash
+
+      - name: Build Tauri app
+        if: matrix.platform != 'macos' || matrix.arch != 'aarch64'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Happy Friday v__VERSION__'
+          releaseBody: 'See the assets to download and install this version.'
+          releaseDraft: true
+          prerelease: false
+          args: --target ${{ matrix.target }} --bundles app,image,updater
+
+      - name: Build Tauri app (macOS Universal Binary)
+        if: matrix.platform == 'macos' && matrix.arch == 'aarch64'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Happy Friday v__VERSION__'
+          releaseBody: 'See the assets to download and install this version.'
+          releaseDraft: true
+          prerelease: false
+          args: --target universal-apple-darwin --bundles app,image,updater
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.bundle_name }}
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/*.{dmg,deb,rpm,AppImage,msi,exe,zip,tar.gz}
+          retention-days: 30
+          if-no-files-found: warn
+
+  create-universal-binary:
+    name: Create macOS Universal Binary
+    needs: build
+    runs-on: macos-latest
+    if: success()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download macOS x86_64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: happy-friday-macos-x86_64
+          path: ./artifacts/x86_64
+
+      - name: Download macOS aarch64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: happy-friday-macos-aarch64
+          path: ./artifacts/aarch64
+
+      - name: List artifacts
+        run: find ./artifacts -type f -name '*.dmg' -o -name '*.app' | head -20
+
+      - name: Upload universal binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: happy-friday-macos-universal
+          path: ./artifacts
+          retention-days: 30
+
+  release:
+    name: Create Release
+    needs: [build]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-builds
+          pattern: happy-friday-*
+          merge-multiple: true
+
+      - name: List builds
+        run: |
+          echo "=== All Build Artifacts ==="
+          find all-builds -type f | sort
+          echo ""
+          echo "=== File Sizes ==="
+          du -sh all-builds/*/*
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: all-builds/**/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  summary:
+    name: Build Summary
+    needs: [build, create-universal-binary]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts for summary
+        uses: actions/download-artifact@v4
+        with:
+          path: summary-artifacts
+          pattern: happy-friday-*
+
+      - name: Generate build summary
+        run: |
+          echo "## 📦 Happy Friday 构建总结" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 平台 | 架构 | 状态 | 文件 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|------|------|" >> $GITHUB_STEP_SUMMARY
+
+          for dir in summary-artifacts/*/; do
+            platform=$(basename "$dir")
+            files=$(find "$dir" -type f 2>/dev/null | wc -l)
+            if [ $files -gt 0 ]; then
+              status="✅ 成功"
+              file_list=$(find "$dir" -type f -exec basename {} \; | tr '\n' ', ')
+              echo "| $platform | - | $status | ${file_list%,} |" >> $GITHUB_STEP_SUMMARY
+            else
+              status="❌ 失败"
+              echo "| $platform | - | $status | 无文件 |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**构建时间:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
