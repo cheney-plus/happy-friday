@@ -33,11 +33,15 @@
           </div>
           <div class="setting-item">
             <span class="item-label">字体大小</span>
-            <div class="slider-wrapper">
-              <span class="slider-label slider-min">小</span>
-              <input type="range" min="12" max="20" v-model.number="settings.fontSize" class="item-slider" />
-              <span class="slider-label slider-max">大</span>
-              <span class="slider-mid">{{ settings.fontSize === 16 ? '标准' : '' }}</span>
+            <div class="font-size-options">
+              <div
+                v-for="option in fontSizeOptions"
+                :key="option.value"
+                :class="['font-size-option', { active: settings.fontSize === option.value }]"
+                @click="settings.fontSize = option.value"
+              >
+                {{ option.label }}
+              </div>
             </div>
           </div>
           <div class="setting-item">
@@ -69,7 +73,7 @@
         <div class="group-title">AI工具</div>
         <div class="group-content">
           <div class="setting-item">
-            <span class="item-label">随时唤起ima</span>
+            <span class="item-label">随时唤起Friday</span>
             <span class="shortcut-key">⌘ + Space</span>
           </div>
           <div class="setting-item">
@@ -140,12 +144,12 @@
       <div class="settings-group">
         <div class="group-title">关于</div>
         <div class="group-content">
-          <div class="setting-item clickable">
-            <span class="item-label">关于ima.copilot</span>
+          <div class="setting-item clickable">  
+            <span class="item-label">关于&nbsp;friday.copilot</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="arrow-icon"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </div>
           <div class="setting-item">
-            <span class="item-label">版本号 &nbsp; 2.5.0(4215)</span>
+            <span class="item-label">版本号&nbsp;1.0.1(0512)</span>
             <button class="text-btn">检查并更新</button>
           </div>
           <div class="setting-item clickable">
@@ -187,6 +191,12 @@ const themeOptions = [
   { value: 'light', label: '浅色模式' },
   { value: 'dark', label: '深色模式' },
   { value: 'system', label: '跟随系统' }
+];
+
+const fontSizeOptions = [
+  { value: 14, label: '小' },
+  { value: 16, label: '标准' },
+  { value: 18, label: '大' }
 ];
 
 const currentThemeLabel = computed(() => {
@@ -305,7 +315,7 @@ const goToModelSettings = () => {
 .theme-select-wrapper {
   position: relative;
   flex: 1;
-  max-width: 200px;
+  max-width: 140px;
 }
 
 .theme-select-trigger {
@@ -387,69 +397,34 @@ const goToModelSettings = () => {
   flex-shrink: 0;
 }
 
-.slider-wrapper {
+.font-size-options {
   display: flex;
   align-items: center;
-  gap: 8px;
-  position: relative;
-  flex: 1;
-  max-width: 280px;
-  justify-content: flex-end;
+  gap: 4px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 4px;
 }
 
-.slider-label {
-  font-size: 11px;
-  color: var(--text-tertiary);
-  white-space: nowrap;
-}
-
-.slider-min {
-  position: absolute;
-  left: 0;
-}
-
-.slider-max {
-  position: absolute;
-  right: 0;
-}
-
-.slider-mid {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  top: 18px;
-  font-size: 11px;
-  color: var(--text-tertiary);
-}
-
-.item-slider {
-  width: 160px;
-  height: 4px;
-  appearance: none;
-  background: var(--border-color);
-  border-radius: 2px;
-  outline: none;
+.font-size-option {
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
   cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
 }
 
-.item-slider::-webkit-slider-thumb {
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  background: var(--text-primary);
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+.font-size-option:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
 }
 
-.item-slider::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  background: var(--text-primary);
-  border-radius: 50%;
-  cursor: pointer;
-  border: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+.font-size-option.active {
+  background-color: var(--text-primary);
+  color: #ffffff;
+  font-weight: 500;
 }
 
 .toggle-switch {
