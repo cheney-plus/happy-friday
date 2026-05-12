@@ -1146,7 +1146,6 @@ onUnmounted(() => {
 }
 
 .ai-assistant-btn:hover {
-  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
