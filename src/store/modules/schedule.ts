@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { invoke } from '@tauri-apps/api/core';
 
 export interface ScheduleEvent {
   id: string;
@@ -12,6 +13,8 @@ export interface ScheduleEvent {
   color: string;
   reminder: boolean;
   completed: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const EVENT_COLORS = [
@@ -36,34 +39,12 @@ export const EVENT_COLORS = [
   '#6730ec',
 ];
 
-const STORAGE_KEY = 'happy-friday-schedule-events';
-
-function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
-}
-
-function loadEvents(): ScheduleEvent[] {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveEvents(events: ScheduleEvent[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
-  } catch {
-    // ignore storage errors
-  }
-}
-
 export const useScheduleStore = defineStore('schedule', {
   state: () => ({
-    events: loadEvents() as ScheduleEvent[],
+    events: [] as ScheduleEvent[],
     selectedDate: new Date().toISOString().split('T')[0],
     currentView: 'month' as 'month' | 'week' | 'year',
+    loading: false,
   }),
 
   getters: {
@@ -83,27 +64,77 @@ export const useScheduleStore = defineStore('schedule', {
   },
 
   actions: {
-    addEvent(event: Omit<ScheduleEvent, 'id'>) {
-      const newEvent: ScheduleEvent = {
-        ...event,
-        id: generateId(),
-      };
-      this.events.push(newEvent);
-      saveEvents(this.events);
-      return newEvent;
-    },
-
-    updateEvent(id: string, updates: Partial<ScheduleEvent>) {
-      const idx = this.events.findIndex((e) => e.id === id);
-      if (idx >= 0) {
-        this.events[idx] = { ...this.events[idx], ...updates };
-        saveEvents(this.events);
+    async loadEvents() {
+      this.loading = true;
+      try {
+        this.events = await invoke<ScheduleEvent[]>('get_schedule_events');
+      } catch (e) {
+        console.error('Failed to load schedule events:', e);
+        this.events = [];
+      } finally {
+        this.loading = false;
       }
     },
 
-    removeEvent(id: string) {
-      this.events = this.events.filter((e) => e.id !== id);
-      saveEvents(this.events);
+    async addEvent(event: Omit<ScheduleEvent, 'id' | 'createdAt' | 'updatedAt'>) {
+      try {
+        const newEvent = await invoke<ScheduleEvent>('create_schedule_event', {
+          title: event.title,
+          startDate: event.start,
+          endDate: event.end,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          allDay: event.allDay,
+          description: event.description,
+          color: event.color,
+          reminder: event.reminder,
+          completed: event.completed,
+        });
+        this.events.push(newEvent);
+        return newEvent;
+      } catch (e) {
+        console.error('Failed to create schedule event:', e);
+        throw e;
+      }
+    },
+
+    async updateEvent(id: string, updates: Partial<ScheduleEvent>) {
+      const existing = this.events.find((e) => e.id === id);
+      if (!existing) return;
+
+      const merged = { ...existing, ...updates };
+      try {
+        await invoke('update_schedule_event', {
+          eventId: id,
+          title: merged.title,
+          startDate: merged.start,
+          endDate: merged.end,
+          startTime: merged.startTime,
+          endTime: merged.endTime,
+          allDay: merged.allDay,
+          description: merged.description,
+          color: merged.color,
+          reminder: merged.reminder,
+          completed: merged.completed,
+        });
+        const idx = this.events.findIndex((e) => e.id === id);
+        if (idx >= 0) {
+          this.events[idx] = { ...this.events[idx], ...updates };
+        }
+      } catch (e) {
+        console.error('Failed to update schedule event:', e);
+        throw e;
+      }
+    },
+
+    async removeEvent(id: string) {
+      try {
+        await invoke('delete_schedule_event', { eventId: id });
+        this.events = this.events.filter((e) => e.id !== id);
+      } catch (e) {
+        console.error('Failed to delete schedule event:', e);
+        throw e;
+      }
     },
 
     setSelectedDate(date: string) {

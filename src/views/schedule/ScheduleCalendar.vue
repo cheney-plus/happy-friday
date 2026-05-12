@@ -898,9 +898,9 @@ function onEventRightClick(e: MouseEvent, evt: ScheduleEvent) {
   contextMenuVisible.value = true;
 }
 
-function toggleComplete() {
+async function toggleComplete() {
   if (!contextMenuEvent.value) return;
-  scheduleStore.updateEvent(contextMenuEvent.value.id, { completed: !contextMenuEvent.value.completed });
+  await scheduleStore.updateEvent(contextMenuEvent.value.id, { completed: !contextMenuEvent.value.completed });
   contextMenuVisible.value = false;
 }
 
@@ -943,10 +943,10 @@ function closeModal() {
   editingEventId.value = null;
 }
 
-function saveEvent() {
+async function saveEvent() {
   if (!formData.title.trim()) return;
   if (isEditMode.value && editingEventId.value) {
-    scheduleStore.updateEvent(editingEventId.value, {
+    await scheduleStore.updateEvent(editingEventId.value, {
       title: formData.title,
       start: formData.start,
       end: formData.end,
@@ -959,7 +959,7 @@ function saveEvent() {
       completed: formData.completed,
     });
   } else {
-    scheduleStore.addEvent({
+    await scheduleStore.addEvent({
       title: formData.title,
       start: formData.start,
       end: formData.end,
@@ -975,9 +975,9 @@ function saveEvent() {
   closeModal();
 }
 
-function deleteEvent() {
+async function deleteEvent() {
   if (editingEventId.value) {
-    scheduleStore.removeEvent(editingEventId.value);
+    await scheduleStore.removeEvent(editingEventId.value);
     closeModal();
   }
 }
@@ -995,6 +995,7 @@ watch(currentView, (v) => {
 });
 
 onMounted(() => {
+  scheduleStore.loadEvents();
   document.addEventListener('keydown', handleKeydown);
   updateNowY();
   nowTimer = setInterval(updateNowY, 60000);

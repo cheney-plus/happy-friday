@@ -124,3 +124,27 @@ pub struct SessionTitlePayload {
     pub session_id: String,
     pub title: String,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ScheduleEvent {
+    pub id: String,
+    pub title: String,
+    #[serde(rename = "start")]
+    pub start_date: String,
+    #[serde(rename = "end")]
+    pub end_date: String,
+    #[serde(rename = "startTime")]
+    pub start_time: String,
+    #[serde(rename = "endTime")]
+    pub end_time: String,
+    #[serde(rename = "allDay")]
+    pub all_day: bool,
+    pub description: String,
+    pub color: String,
+    pub reminder: bool,
+    pub completed: bool,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: String,
+}

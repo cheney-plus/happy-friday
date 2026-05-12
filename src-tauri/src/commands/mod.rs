@@ -6,7 +6,7 @@ use crate::error::AppResult;
 use crate::events::{CHAT_DONE, CONFIG_CHANGED, SESSION_TITLE_UPDATED};
 use crate::llm;
 use crate::types::{
-    AppConfig, ChatDonePayload, ChatMessage, ChatResult, Message, ModelConfig, Note, Session,
+    AppConfig, ChatDonePayload, ChatMessage, ChatResult, Message, ModelConfig, Note, ScheduleEvent, Session,
 };
 
 #[command]
@@ -242,6 +242,77 @@ pub fn search_notes(db: State<'_, DbState>, query: String) -> AppResult<Vec<Note
     db::search_notes(&conn, &query)
 }
 
+#[command]
+pub fn get_schedule_events(db: State<'_, DbState>) -> AppResult<Vec<ScheduleEvent>> {
+    let conn = db.0.lock().map_err(|e| crate::error::AppError::Database(e.to_string()))?;
+    db::get_schedule_events(&conn)
+}
+
+#[command]
+pub fn get_schedule_events_by_date_range(
+    db: State<'_, DbState>,
+    start: String,
+    end: String,
+) -> AppResult<Vec<ScheduleEvent>> {
+    let conn = db.0.lock().map_err(|e| crate::error::AppError::Database(e.to_string()))?;
+    db::get_schedule_events_by_date_range(&conn, &start, &end)
+}
+
+#[command]
+pub fn get_schedule_event(db: State<'_, DbState>, event_id: String) -> AppResult<Option<ScheduleEvent>> {
+    let conn = db.0.lock().map_err(|e| crate::error::AppError::Database(e.to_string()))?;
+    db::get_schedule_event(&conn, &event_id)
+}
+
+#[command]
+pub fn create_schedule_event(
+    db: State<'_, DbState>,
+    title: String,
+    start_date: String,
+    end_date: String,
+    start_time: String,
+    end_time: String,
+    all_day: bool,
+    description: String,
+    color: String,
+    reminder: bool,
+    completed: bool,
+) -> AppResult<ScheduleEvent> {
+    let conn = db.0.lock().map_err(|e| crate::error::AppError::Database(e.to_string()))?;
+    db::create_schedule_event(
+        &conn, &title, &start_date, &end_date, &start_time, &end_time,
+        all_day, &description, &color, reminder, completed,
+    )
+}
+
+#[command]
+pub fn update_schedule_event(
+    db: State<'_, DbState>,
+    event_id: String,
+    title: String,
+    start_date: String,
+    end_date: String,
+    start_time: String,
+    end_time: String,
+    all_day: bool,
+    description: String,
+    color: String,
+    reminder: bool,
+    completed: bool,
+) -> AppResult<()> {
+    let conn = db.0.lock().map_err(|e| crate::error::AppError::Database(e.to_string()))?;
+    db::update_schedule_event(
+        &conn, &event_id, &title, &start_date, &end_date, &start_time, &end_time,
+        all_day, &description, &color, reminder, completed,
+    )
+}
+
+#[command]
+pub fn delete_schedule_event(db: State<'_, DbState>, event_id: String) -> AppResult<()> {
+    let conn = db.0.lock().map_err(|e| crate::error::AppError::Database(e.to_string()))?;
+    db::delete_schedule_event(&conn, &event_id)
+}
+
 pub fn get_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool {
     tauri::generate_handler![
         get_config,
@@ -259,6 +330,12 @@ pub fn get_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool {
         create_note,
         update_note,
         delete_note,
-        search_notes
+        search_notes,
+        get_schedule_events,
+        get_schedule_events_by_date_range,
+        get_schedule_event,
+        create_schedule_event,
+        update_schedule_event,
+        delete_schedule_event
     ]
 }

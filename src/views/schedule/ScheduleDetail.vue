@@ -226,9 +226,9 @@ function cancelEdit() {
   isEditing.value = false;
 }
 
-function saveEdit() {
+async function saveEdit() {
   if (!editForm.title.trim() || !event.value) return;
-  scheduleStore.updateEvent(eventId.value, {
+  await scheduleStore.updateEvent(eventId.value, {
     title: editForm.title,
     start: editForm.start,
     end: editForm.end,
@@ -251,15 +251,15 @@ function cancelDelete() {
   deleteConfirmVisible.value = false;
 }
 
-function doDelete() {
-  scheduleStore.removeEvent(eventId.value);
+async function doDelete() {
+  await scheduleStore.removeEvent(eventId.value);
   deleteConfirmVisible.value = false;
   goBack();
 }
 
-function toggleStatus() {
+async function toggleStatus() {
   if (!event.value) return;
-  scheduleStore.updateEvent(eventId.value, { completed: !event.value.completed });
+  await scheduleStore.updateEvent(eventId.value, { completed: !event.value.completed });
 }
 
 onMounted(() => {
