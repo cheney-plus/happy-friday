@@ -24,6 +24,12 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           {{ t('schedule.createEvent') }}
         </button>
+        <button class="ai-assistant-btn" @click="openAIAssistant">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"/>
+          </svg>
+          Friday 助理
+        </button>
       </div>
     </div>
 
@@ -115,7 +121,7 @@
                 {{ formatHour(h - 1) }}
               </div>
             </div>
-            <div class="wk-grid">
+            <div class="wk-grid" @mouseup="onWeekCellMouseUp">
               <div
                 v-for="day in weekDays"
                 :key="day.date"
@@ -124,8 +130,10 @@
                 <div
                   v-for="h in 24"
                   :key="h"
-                  class="wk-cell"
+                  :class="['wk-cell', { 'wk-cell-selected': weekTimeDrag.active && day.date === weekTimeDrag.startDate && h - 1 >= Math.min(weekTimeDrag.startHour, weekTimeDrag.endHour) && h - 1 <= Math.max(weekTimeDrag.startHour, weekTimeDrag.endHour) }]"
                   :style="{ height: hourPx + 'px' }"
+                  @mousedown.prevent="onWeekCellMouseDown(day.date, h - 1)"
+                  @mouseenter="onWeekCellMouseEnter(h - 1)"
                   @click="onWeekCellClick(day.date, h - 1)"
                 >
                   <div class="wk-cell-half"></div>
@@ -312,6 +320,13 @@ const isDragging = ref(false);
 const dragCompleted = ref(false);
 const selectionStart = ref<string | null>(null);
 const selectionEnd = ref<string | null>(null);
+
+const weekTimeDrag = ref({
+  active: false,
+  startDate: '',
+  startHour: -1,
+  endHour: -1,
+});
 
 const nowY = ref(0);
 let nowTimer: ReturnType<typeof setInterval> | null = null;
@@ -835,10 +850,37 @@ function onGridMouseUp() {
 }
 
 function onWeekCellClick(date: string, hour: number) {
+  if (weekTimeDrag.value.active) return;
   const startTime = `${String(hour).padStart(2, '0')}:00`;
   const endHour = hour + 1;
   const endTime = endHour >= 24 ? '23:59' : `${String(endHour).padStart(2, '0')}:00`;
   openCreateModal(date, date, startTime, endTime, false);
+}
+
+function onWeekCellMouseDown(date: string, hour: number) {
+  weekTimeDrag.value = {
+    active: true,
+    startDate: date,
+    startHour: hour,
+    endHour: hour,
+  };
+}
+
+function onWeekCellMouseEnter(hour: number) {
+  if (!weekTimeDrag.value.active) return;
+  weekTimeDrag.value.endHour = hour;
+}
+
+function onWeekCellMouseUp() {
+  if (!weekTimeDrag.value.active) return;
+  const { startDate, startHour, endHour } = weekTimeDrag.value;
+  const minHour = Math.min(startHour, endHour);
+  const maxHour = Math.max(startHour, endHour);
+  const startTime = `${String(minHour).padStart(2, '0')}:00`;
+  const endTime = maxHour >= 23 ? '23:59' : `${String(maxHour + 1).padStart(2, '0')}:00`;
+  
+  weekTimeDrag.value.active = false;
+  openCreateModal(startDate, startDate, startTime, endTime, false);
 }
 
 function onEventClick(event: ScheduleEvent) {
@@ -873,6 +915,10 @@ function onYearMonthClick(monthIndex: number) {
   currentView.value = 'month';
 }
 
+function openAIAssistant() {
+  alert('Friday AI 助理功能即将上线！');
+}
+
 function openCreateModal(startDate?: string, endDate?: string, startTime?: string, endTime?: string, allDay?: boolean) {
   isEditMode.value = false;
   editingEventId.value = null;
@@ -884,7 +930,7 @@ function openCreateModal(startDate?: string, endDate?: string, startTime?: strin
   formData.startTime = startTime || '09:00';
   formData.endTime = endTime || '10:00';
   formData.description = '';
-  formData.color = EVENT_COLORS[0];
+  formData.color = EVENT_COLORS[Math.floor(Math.random() * EVENT_COLORS.length)];
   modalVisible.value = true;
   nextTick(() => {
     titleInputRef.value?.focus();
@@ -1070,17 +1116,38 @@ onUnmounted(() => {
   padding: 0 14px;
   height: 32px;
   border: none;
-  background: var(--accent-color);
+  background: #1a1a1a;
   border-radius: 8px;
   color: white;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: all 0.15s;
 }
 
 .create-btn:hover {
-  opacity: 0.9;
+  background: #000000;
+}
+
+.ai-assistant-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 32px;
+  border: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ai-assistant-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .calendar-body {
@@ -1106,8 +1173,8 @@ onUnmounted(() => {
 .weekday-cell {
   padding: 8px 0;
   text-align: center;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text-secondary);
 }
 
@@ -1253,6 +1320,7 @@ onUnmounted(() => {
 .wk-header-days {
   display: flex;
   flex: 1;
+  padding-right: 8px;
 }
 
 .wk-head-day {
@@ -1265,14 +1333,14 @@ onUnmounted(() => {
 }
 
 .wk-head-weekday {
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text-secondary);
   letter-spacing: 0.3px;
 }
 
 .wk-head-date {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.2;
@@ -1312,6 +1380,7 @@ onUnmounted(() => {
 .wk-allday-cols {
   display: flex;
   flex: 1;
+  padding-right: 8px;
 }
 
 .wk-allday-col {
@@ -1343,14 +1412,13 @@ onUnmounted(() => {
 
 .wk-scroll {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden;
   position: relative;
-  scrollbar-gutter: stable;
 }
 
 .wk-scroll::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 .wk-scroll::-webkit-scrollbar-track {
@@ -1358,12 +1426,16 @@ onUnmounted(() => {
 }
 
 .wk-scroll::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 3px;
+  background-color: var(--border-color);
+  border-radius: 4px;
 }
 
 .wk-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
+  background-color: var(--text-tertiary);
+}
+
+.wk-scroll::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .wk-body {
@@ -1411,6 +1483,10 @@ onUnmounted(() => {
 
 .wk-cell:hover {
   background: var(--bg-hover);
+}
+
+.wk-cell-selected {
+  background: var(--accent-light) !important;
 }
 
 .wk-cell-half {

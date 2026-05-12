@@ -16,12 +16,10 @@ export interface ScheduleEvent {
 
 export const EVENT_COLORS = [
   '#60a5fa',
-  '#94a3b8',
   '#fbbf24',
   '#c084fc',
   '#f87171',
   '#22d3ee',
-  '#facc15',
   '#fb7185',
   '#2563eb',
   '#6366f1',
@@ -31,6 +29,11 @@ export const EVENT_COLORS = [
   '#0891b2',
   '#ca8a04',
   '#be185d',
+  '#ff9de2',
+  '#8c82fc',
+  '#ffaa64',
+  '#ff6464',
+  '#6730ec',
 ];
 
 const STORAGE_KEY = 'happy-friday-schedule-events';
