@@ -18,40 +18,30 @@ jobs:
           - platform: windows-latest
             arch: x86_64
             target: x86_64-pc-windows-msvc
-            ext: .exe
 
           - platform: windows-latest
             arch: aarch64
             target: aarch64-pc-windows-msvc
-            ext: .exe
 
           - platform: ubuntu-22.04
             arch: x86_64
             target: x86_64-unknown-linux-gnu
-            ext: ""
 
           - platform: ubuntu-22.04
             arch: aarch64
             target: aarch64-unknown-linux-gnu
-            ext: ""
 
           - platform: macos-13
             arch: x86_64
             target: x86_64-apple-darwin
-            ext: ""
-            signing_key: ${{ secrets.APPLE_SIGNING_CERTIFICATE_BASE64 }}
 
           - platform: macos-14
             arch: aarch64
             target: aarch64-apple-darwin
-            ext: ""
-            signing_key: ${{ secrets.APPLE_SIGNING_CERTIFICATE_BASE64 }}
 
           - platform: macos-14
             arch: universal
             target: universal-apple-darwin
-            ext: ""
-            signing_key: ${{ secrets.APPLE_SIGNING_CERTIFICATE_BASE64 }}
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -91,7 +81,7 @@ jobs:
         run: pnpm install
 
       - name: Setup Apple code signing
-        if: matrix.platform == 'macos-*' && matrix.signing_key != ''
+        if: startsWith(matrix.platform, 'macos')
         uses: apple-actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.APPLE_SIGNING_CERTIFICATE_BASE64 }}
@@ -101,7 +91,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_CERTIFICATE: ${{ matrix.signing_key }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_SIGNING_CERTIFICATE_BASE64 }}
           APPLE_PASSWORD: ${{ secrets.APPLE_SIGNING_CERTIFICATE_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD_APP: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
