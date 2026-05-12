@@ -173,7 +173,7 @@ const getTauriWindow = () => {
 const switchTab = (tab: Tab) => {
   if (tabStore.activeTabId !== tab.id) {
     tabStore.setActiveTab(tab.id);
-    router.push(tab.path);
+    router.push(tab.fullPath);
   }
 };
 
@@ -181,13 +181,13 @@ const closeTab = (id: string) => {
   tabStore.removeTab(id);
   const activeTab = tabStore.openedTabs.find(t => t.id === tabStore.activeTabId);
   if (activeTab) {
-    router.push(activeTab.path);
+    router.push(activeTab.fullPath);
   }
 };
 
 const addFridayTab = () => {
   const tab = tabStore.addFridayTab();
-  router.push(tab.path);
+  router.push(tab.fullPath);
 };
 
 const onWheel = (e: WheelEvent) => {

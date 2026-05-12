@@ -5,7 +5,11 @@
       <Sidebar />
       <main class="main-content">
         <div class="content-wrapper">
-          <router-view />
+          <router-view v-slot="{ Component }">
+            <keep-alive>
+              <component :is="Component" :key="route.fullPath" />
+            </keep-alive>
+          </router-view>
         </div>
       </main>
     </div>
@@ -20,56 +24,58 @@ import { useAppStore, useTabStore } from '@/store';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { setI18nLanguage } from '@/i18n';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { allMenuConfigs, isTauriEnvironment } from '@/config/menu';
+import { useTheme } from '@/utils/theme';
 
 const appStore = useAppStore();
 const tabStore = useTabStore();
 const route = useRoute();
+const router = useRouter();
+const { initTheme, setTheme: applyThemeFromConfig } = useTheme();
 
 let unlistenConfig: UnlistenFn | null = null;
 
 watch(
-  () => appStore.theme,
-  (theme) => {
-    document.documentElement.setAttribute('data-theme', theme);
-  },
-  { immediate: true }
-);
-
-watch(
-  () => route.path,
+  () => route.fullPath,
   (newPath) => {
-    if (newPath && newPath !== '/') {
-      const rootPath = '/' + newPath.split('/')[1];
-      const menu = allMenuConfigs.find(m => m.path === rootPath);
+    if (!newPath || newPath === '/') return;
 
-      if (menu) {
-        if (rootPath === '/friday') {
-          const fridayTabs = tabStore.openedTabs.filter(t => t.path === '/friday');
-          if (fridayTabs.length === 0) {
-            tabStore.addFridayTab();
-          } else {
-            const activeTab = tabStore.openedTabs.find(t => t.id === tabStore.activeTabId);
-            if (!activeTab || activeTab.path !== '/friday') {
-              tabStore.setActiveTab(fridayTabs[fridayTabs.length - 1].id);
-            }
-          }
-        } else {
-          tabStore.addTab({
-            id: newPath,
-            path: newPath,
-            i18nKey: menu.i18nKey,
-            icon: menu.icon
-          });
-        }
+    const rootPath = '/' + newPath.split('/')[1];
+    const menu = allMenuConfigs.find(m => m.path === rootPath);
+    if (!menu) return;
+
+    const activeTab = tabStore.openedTabs.find(t => t.id === tabStore.activeTabId);
+    if (activeTab) {
+      const activeRootPath = '/' + activeTab.path.split('/')[1];
+      if (activeRootPath === rootPath) {
+        tabStore.updateTabFullPath(activeTab.id, newPath);
+        return;
       }
+    }
+
+    if (rootPath === '/friday') {
+      const tab = tabStore.addFridayTab();
+      if (newPath !== '/friday') {
+        tabStore.updateTabFullPath(tab.id, newPath);
+      }
+      router.replace(newPath !== '/friday' ? newPath : tab.fullPath);
+    } else {
+      tabStore.addTab({
+        id: newPath,
+        path: newPath,
+        fullPath: newPath,
+        i18nKey: menu.i18nKey,
+        icon: menu.icon
+      });
     }
   },
   { immediate: true }
 );
 
 onMounted(async () => {
+  initTheme();
+
   if (isTauriEnvironment()) {
     try {
       const config = await invoke<{ language?: string; theme?: string }>('get_config');
@@ -93,6 +99,7 @@ onMounted(async () => {
       }
       if (event.payload.theme) {
         appStore.setTheme(event.payload.theme);
+        applyThemeFromConfig(event.payload.theme as 'light' | 'dark' | 'system');
       }
     });
   } else {

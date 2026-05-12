@@ -1,4 +1,3 @@
-
 use serde::{Serialize, Serializer};
 
 #[derive(thiserror::Error, Debug)]
@@ -9,6 +8,12 @@ pub enum AppError {
     Serialization(#[from] serde_json::Error),
     #[error("Config Error: {0}")]
     Config(String),
+    #[error("Database Error: {0}")]
+    Database(String),
+    #[error("LLM Error: {0}")]
+    Llm(String),
+    #[error("Request Error: {0}")]
+    Request(#[from] reqwest::Error),
 }
 
 impl Serialize for AppError {
@@ -17,6 +22,12 @@ impl Serialize for AppError {
         S: Serializer,
     {
         serializer.serialize_str(self.to_string().as_ref())
+    }
+}
+
+impl From<rusqlite::Error> for AppError {
+    fn from(err: rusqlite::Error) -> Self {
+        AppError::Database(err.to_string())
     }
 }
 

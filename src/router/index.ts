@@ -3,7 +3,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 export const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    redirect: '/workspace'
+    redirect: '/friday'
   },
   {
     path: '/workspace',
@@ -51,9 +51,19 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/settings/SettingsGeneral.vue')
   },
   {
+    path: '/settings/model',
+    name: 'settings-model',
+    component: () => import('@/views/settings/SettingsModel.vue')
+  },
+  {
     path: '/friday',
     name: 'friday',
     component: () => import('@/views/friday/FridayChat.vue')
+  },
+  {
+    path: '/friday/chat/:sessionId?',
+    name: 'friday-chat',
+    component: () => import('@/views/friday/FridayConversation.vue')
   },
   {
     path: '/:pathMatch(.*)*',
