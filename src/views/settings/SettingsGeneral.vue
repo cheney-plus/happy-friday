@@ -9,11 +9,27 @@
         <div class="group-content">
           <div class="setting-item">
             <span class="item-label">界面显示</span>
-            <select v-model="settings.displayMode" class="item-select">
-              <option value="system">跟随系统</option>
-              <option value="light">浅色模式</option>
-              <option value="dark">深色模式</option>
-            </select>
+            <div class="theme-select-wrapper" ref="themeSelectRef">
+              <div class="theme-select-trigger" @click="toggleThemeDropdown">
+                <span>{{ currentThemeLabel }}</span>
+                <svg class="theme-select-arrow" :class="{ expanded: showThemeDropdown }" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+              <div v-if="showThemeDropdown" class="theme-dropdown-menu">
+                <div
+                  v-for="option in themeOptions"
+                  :key="option.value"
+                  :class="['theme-dropdown-item', { active: settings.displayMode === option.value }]"
+                  @click="selectTheme(option.value)"
+                >
+                  <span>{{ option.label }}</span>
+                  <svg v-if="settings.displayMode === option.value" class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="setting-item">
             <span class="item-label">字体大小</span>
@@ -155,18 +171,63 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue';
+import { reactive, ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAppStore } from '@/store';
+import { useTheme } from '@/utils/theme';
 
 const router = useRouter();
+const appStore = useAppStore();
+const { currentMode, setTheme: applyTheme, initTheme } = useTheme();
+
+const showThemeDropdown = ref(false);
+const themeSelectRef = ref<HTMLElement | null>(null);
+
+const themeOptions = [
+  { value: 'light', label: '浅色模式' },
+  { value: 'dark', label: '深色模式' },
+  { value: 'system', label: '跟随系统' }
+];
+
+const currentThemeLabel = computed(() => {
+  const option = themeOptions.find(opt => opt.value === currentMode.value);
+  return option?.label || '浅色模式';
+});
 
 const settings = reactive({
-  displayMode: 'system',
+  displayMode: currentMode,
   fontSize: 16,
   autoStart: true,
   messageNotify: false,
   restoreTabs: true,
   showBookmarkBar: false
+});
+
+const toggleThemeDropdown = () => {
+  showThemeDropdown.value = !showThemeDropdown.value;
+};
+
+const selectTheme = (value: string) => {
+  settings.displayMode = value as 'light' | 'dark' | 'system';
+  applyTheme(value as 'light' | 'dark' | 'system');
+  appStore.setTheme(value);
+  showThemeDropdown.value = false;
+};
+
+const handleClickOutside = (event: MouseEvent) => {
+  if (themeSelectRef.value && !themeSelectRef.value.contains(event.target as Node)) {
+    showThemeDropdown.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+  initTheme();
+  settings.displayMode = currentMode.value;
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
 });
 
 const goToModelSettings = () => {
@@ -213,7 +274,7 @@ const goToModelSettings = () => {
 }
 
 .group-content {
-  background-color: #f7f6f3;
+  background-color: var(--bg-secondary);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -241,19 +302,89 @@ const goToModelSettings = () => {
   font-weight: 500;
 }
 
-.item-select {
-  appearance: none;
-  background-color: transparent;
-  border: none;
-  outline: none;
+.theme-select-wrapper {
+  position: relative;
+  flex: 1;
+  max-width: 200px;
+}
+
+.theme-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
   font-size: 14px;
   color: var(--text-primary);
-  cursor: pointer;
-  padding-right: 20px;
-  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right center;
   font-weight: 500;
+}
+
+.theme-select-trigger:hover {
+  background-color: var(--bg-hover);
+}
+
+.theme-select-arrow {
+  color: var(--text-tertiary);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.theme-select-arrow.expanded {
+  transform: rotate(180deg);
+}
+
+.theme-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  z-index: 100;
+  animation: themeDropdownIn 0.2s ease;
+}
+
+@keyframes themeDropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.theme-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background-color 0.15s;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.theme-dropdown-item:hover {
+  background-color: var(--bg-hover);
+}
+
+.theme-dropdown-item.active {
+  background-color: var(--accent-light);
+}
+
+.check-icon {
+  flex-shrink: 0;
 }
 
 .slider-wrapper {
@@ -295,7 +426,7 @@ const goToModelSettings = () => {
   width: 160px;
   height: 4px;
   appearance: none;
-  background: #e5e5e5;
+  background: var(--border-color);
   border-radius: 2px;
   outline: none;
   cursor: pointer;
@@ -339,7 +470,7 @@ const goToModelSettings = () => {
   position: absolute;
   cursor: pointer;
   inset: 0;
-  background-color: #d4d4d4;
+  background-color: var(--text-tertiary);
   border-radius: 24px;
   transition: background-color 0.25s ease;
 }
@@ -351,7 +482,7 @@ const goToModelSettings = () => {
   width: 18px;
   left: 3px;
   bottom: 3px;
-  background-color: white;
+  background-color: var(--bg-primary);
   border-radius: 50%;
   transition: transform 0.25s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
@@ -368,7 +499,7 @@ const goToModelSettings = () => {
 .shortcut-key {
   font-size: 13px;
   color: var(--text-primary);
-  background-color: #f0efe9;
+  background-color: var(--bg-secondary);
   padding: 5px 12px;
   border-radius: 6px;
   font-family: inherit;
@@ -389,7 +520,7 @@ const goToModelSettings = () => {
 
 .action-btn {
   background-color: var(--text-primary);
-  color: white;
+  color: #ffffff;
   border: none;
   padding: 5px 14px;
   border-radius: 6px;

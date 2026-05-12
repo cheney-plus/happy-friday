@@ -427,6 +427,11 @@ const handleFeatureClick = (id: string) => {
   margin-bottom: 4px;
 }
 
+[data-theme='dark'] .logo-badge {
+  background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+  color: #d1fae5;
+}
+
 .logo-main {
   display: flex;
   align-items: center;
@@ -435,14 +440,14 @@ const handleFeatureClick = (id: string) => {
 
 .logo-icon {
   font-size: 32px;
-  color: #1c1917;
+  color: var(--text-primary);
 }
 
 .logo-text {
   font-size: 56px;
   font-weight: 700;
   letter-spacing: -2px;
-  color: #1c1917;
+  color: var(--text-primary);
   margin: 0;
   line-height: 1;
 }
@@ -461,8 +466,8 @@ const handleFeatureClick = (id: string) => {
 }
 
 .input-wrapper {
-  background: #ffffff;
-  border: 1.5px solid #e5e5e5;
+  background: var(--bg-primary);
+  border: 1.5px solid var(--border-color);
   border-radius: 28px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   overflow: hidden;
@@ -470,7 +475,7 @@ const handleFeatureClick = (id: string) => {
 }
 
 .input-wrapper:focus-within {
-  border-color: #d4d4d4;
+  border-color: var(--text-tertiary);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
@@ -482,7 +487,7 @@ const handleFeatureClick = (id: string) => {
   resize: none;
   font-size: 16px;
   line-height: 1.5;
-  color: #1a1a1a;
+  color: var(--text-primary);
   background: transparent;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   min-height: 52px;
@@ -499,16 +504,16 @@ const handleFeatureClick = (id: string) => {
 }
 
 .main-input::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: var(--text-tertiary);
   border-radius: 10px;
 }
 
 .main-input::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: var(--text-secondary);
 }
 
 .main-input::placeholder {
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 .input-actions {
@@ -532,7 +537,7 @@ const handleFeatureClick = (id: string) => {
   padding: 8px 14px;
   border: none;
   background: transparent;
-  color: #374151;
+  color: var(--text-primary);
   cursor: pointer;
   border-radius: 20px;
   font-size: 13.5px;
@@ -542,7 +547,7 @@ const handleFeatureClick = (id: string) => {
 }
 
 .action-btn:hover {
-  background: #f3f4f6;
+  background: var(--bg-hover);
 }
 
 .dropdown-btn span {
@@ -550,13 +555,13 @@ const handleFeatureClick = (id: string) => {
 }
 
 .dropdown-btn {
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
 }
 
 .dropdown-btn:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
+  background: var(--bg-secondary);
+  border-color: var(--text-tertiary);
 }
 
 .icon-only {
@@ -564,7 +569,7 @@ const handleFeatureClick = (id: string) => {
 }
 
 .icon-only:not(.send-btn) {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   border-radius: 50%;
   width: 34px;
   height: 34px;
@@ -581,7 +586,7 @@ const handleFeatureClick = (id: string) => {
   width: 38px;
   height: 38px;
   border: none;
-  background: #9ca3af;
+  background: var(--text-tertiary);
   color: #ffffff;
   cursor: pointer;
   border-radius: 50%;
@@ -590,7 +595,7 @@ const handleFeatureClick = (id: string) => {
 }
 
 .send-btn.active {
-  background: #374151;
+  background: var(--text-primary);
   color: #ffffff;
 }
 
@@ -608,8 +613,8 @@ const handleFeatureClick = (id: string) => {
 }
 
 .dropdown-panel {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
 }
@@ -623,14 +628,14 @@ const handleFeatureClick = (id: string) => {
   padding: 10px 14px;
   border-radius: 10px;
   font-size: 13.5px;
-  color: #374151;
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.12s ease;
   white-space: nowrap;
 }
 
 .dropdown-item:hover {
-  background: #f3f4f6;
+  background: var(--bg-hover);
 }
 
 .dropdown-item.active {
@@ -653,13 +658,13 @@ const handleFeatureClick = (id: string) => {
 
 .model-toggle-row {
   padding-bottom: 14px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .model-think-row {
   padding-top: 14px;
   padding-bottom: 14px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .model-label {
@@ -668,7 +673,7 @@ const handleFeatureClick = (id: string) => {
   gap: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #1a1a1a;
+  color: var(--text-primary);
 }
 
 .toggle-switch {
@@ -688,7 +693,7 @@ const handleFeatureClick = (id: string) => {
   position: absolute;
   cursor: pointer;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-color: #d1d5db;
+  background-color: var(--text-tertiary);
   border-radius: 24px;
   transition: 0.25s ease;
 }
@@ -717,7 +722,7 @@ const handleFeatureClick = (id: string) => {
 .think-tabs {
   display: flex;
   gap: 4px;
-  background: #f3f4f6;
+  background: var(--bg-secondary);
   border-radius: 10px;
   padding: 3px;
 }
@@ -729,19 +734,19 @@ const handleFeatureClick = (id: string) => {
   border-radius: 8px;
   font-size: 12.5px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .think-tab.active {
-  background: #ffffff;
-  color: #1a1a1a;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
 .think-tab:hover:not(.active) {
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .model-model-list {
@@ -760,7 +765,7 @@ const handleFeatureClick = (id: string) => {
 }
 
 .model-item:hover {
-  background: #f9fafb;
+  background: var(--bg-secondary);
 }
 
 .model-item.active {
@@ -777,7 +782,7 @@ const handleFeatureClick = (id: string) => {
 .model-name {
   font-size: 14px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary);
 }
 
 .model-item.active .model-name {
@@ -795,7 +800,7 @@ const handleFeatureClick = (id: string) => {
 
 .model-desc {
   font-size: 12.5px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   flex: 1;
   text-align: right;
 }
@@ -859,7 +864,7 @@ const handleFeatureClick = (id: string) => {
 .feature-label {
   font-size: 13.5px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary);
   text-align: center;
   letter-spacing: -0.01em;
   line-height: 1.3;
@@ -867,7 +872,7 @@ const handleFeatureClick = (id: string) => {
 
 .feature-desc {
   font-size: 11.5px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   text-align: center;
   line-height: 1.4;
 }

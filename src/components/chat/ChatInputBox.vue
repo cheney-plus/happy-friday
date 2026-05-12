@@ -100,8 +100,8 @@ function autoResize() {
 .input-wrapper {
   max-width: 800px;
   margin: 0 auto;
-  background: #ffffff;
-  border: 1.5px solid #e5e5e5;
+  background: var(--bg-primary);
+  border: 1.5px solid var(--border-color);
   border-radius: 22px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   overflow: hidden;
@@ -109,7 +109,7 @@ function autoResize() {
 }
 
 .input-wrapper:focus-within {
-  border-color: #d4d4d4;
+  border-color: var(--text-tertiary);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
@@ -121,7 +121,7 @@ function autoResize() {
   resize: none;
   font-size: 15px;
   line-height: 1.5;
-  color: #1a1a1a;
+  color: var(--text-primary);
   background: transparent;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   min-height: 38px;
@@ -138,16 +138,16 @@ function autoResize() {
 }
 
 .main-input::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: var(--border-color);
   border-radius: 10px;
 }
 
 .main-input::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: var(--text-tertiary);
 }
 
 .main-input::placeholder {
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 .input-actions {
@@ -171,7 +171,7 @@ function autoResize() {
   padding: 6px 10px;
   border: none;
   background: transparent;
-  color: #374151;
+  color: var(--text-primary);
   cursor: pointer;
   border-radius: 16px;
   font-size: 13px;
@@ -181,7 +181,7 @@ function autoResize() {
 }
 
 .action-btn:hover {
-  background: #f3f4f6;
+  background: var(--bg-secondary);
 }
 
 .icon-only {
@@ -189,7 +189,7 @@ function autoResize() {
 }
 
 .icon-only:not(.send-btn) {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   border-radius: 50%;
   width: 30px;
   height: 30px;
@@ -206,7 +206,7 @@ function autoResize() {
   width: 32px;
   height: 32px;
   border: none;
-  background: #9ca3af;
+  background: var(--text-tertiary);
   color: #ffffff;
   cursor: pointer;
   border-radius: 50%;
@@ -215,7 +215,7 @@ function autoResize() {
 }
 
 .send-btn.active {
-  background: #374151;
+  background: var(--text-secondary);
   color: #ffffff;
 }
 

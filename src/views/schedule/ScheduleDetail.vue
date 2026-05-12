@@ -329,7 +329,7 @@ onMounted(() => {
 }
 
 .group-content {
-  background-color: #f7f6f3;
+  background-color: var(--bg-secondary);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -406,7 +406,7 @@ onMounted(() => {
 }
 
 .action-btn:hover {
-  background-color: #f5f5f5;
+  background-color: var(--bg-hover);
   color: var(--text-primary);
 }
 
@@ -438,11 +438,11 @@ onMounted(() => {
 .form-input {
   width: 100%;
   padding: 10px 14px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
   color: var(--text-primary);
-  background-color: white;
+  background-color: var(--bg-primary);
   outline: none;
   transition: border-color 0.15s;
   font-family: inherit;
@@ -460,11 +460,11 @@ onMounted(() => {
 .form-textarea {
   width: 100%;
   padding: 10px 14px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
   color: var(--text-primary);
-  background-color: white;
+  background-color: var(--bg-primary);
   outline: none;
   resize: vertical;
   font-family: inherit;
@@ -522,14 +522,14 @@ onMounted(() => {
 .checkbox-custom {
   width: 18px;
   height: 18px;
-  border: 2px solid #d1d5db;
+  border: 2px solid var(--border-color);
   border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.15s;
   flex-shrink: 0;
-  background: white;
+  background: var(--bg-primary);
 }
 
 .checkbox-input:checked + .checkbox-custom {
@@ -570,7 +570,7 @@ onMounted(() => {
 
 .color-option.active {
   border-color: var(--text-primary);
-  box-shadow: 0 0 0 2px white;
+  box-shadow: 0 0 0 2px var(--bg-primary);
 }
 
 .edit-actions-bar {
@@ -594,7 +594,7 @@ onMounted(() => {
 }
 
 .cancel-btn:hover {
-  background-color: #f5f5f5;
+  background-color: var(--bg-hover);
 }
 
 .save-btn {
@@ -720,7 +720,7 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 10px;
   padding: 16px 20px;
-  border-top: 1px solid #f0efe9;
+  border-top: 1px solid var(--border-color);
 }
 
 .confirm-delete-btn {

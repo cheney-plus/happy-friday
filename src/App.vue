@@ -26,21 +26,15 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { setI18nLanguage } from '@/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { allMenuConfigs, isTauriEnvironment } from '@/config/menu';
+import { useTheme } from '@/utils/theme';
 
 const appStore = useAppStore();
 const tabStore = useTabStore();
 const route = useRoute();
 const router = useRouter();
+const { initTheme, setTheme: applyThemeFromConfig } = useTheme();
 
 let unlistenConfig: UnlistenFn | null = null;
-
-watch(
-  () => appStore.theme,
-  (theme) => {
-    document.documentElement.setAttribute('data-theme', theme);
-  },
-  { immediate: true }
-);
 
 watch(
   () => route.fullPath,
@@ -80,6 +74,8 @@ watch(
 );
 
 onMounted(async () => {
+  initTheme();
+
   if (isTauriEnvironment()) {
     try {
       const config = await invoke<{ language?: string; theme?: string }>('get_config');
@@ -103,6 +99,7 @@ onMounted(async () => {
       }
       if (event.payload.theme) {
         appStore.setTheme(event.payload.theme);
+        applyThemeFromConfig(event.payload.theme as 'light' | 'dark' | 'system');
       }
     });
   } else {

@@ -37,8 +37,8 @@ defineProps<{
 }
 
 .message-bubble.user {
-  background: #2a2a2e;
-  color: #f0f0f2;
+  background: var(--text-primary);
+  color: var(--bg-primary);
   border-bottom-right-radius: 4px;
 }
 </style>

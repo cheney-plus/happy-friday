@@ -313,7 +313,7 @@ onBeforeUnmount(async () => {
 .note-more-menu {
   position: fixed;
   z-index: 99999;
-  background-color: white;
+  background-color: var(--bg-primary);
   border-radius: 10px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.08);
   padding: 6px 0;
@@ -321,8 +321,7 @@ onBeforeUnmount(async () => {
   animation: menu-in 0.12s ease-out;
 }
 
-.is-dark .note-more-menu {
-  background-color: #2a2725;
+[data-theme='dark'] .note-more-menu {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 0, 0, 0.2);
 }
 

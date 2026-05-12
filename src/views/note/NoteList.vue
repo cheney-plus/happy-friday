@@ -569,7 +569,7 @@ onBeforeUnmount(async () => {
 }
 
 .note-item.active {
-  background-color: #f0f0ee;
+  background-color: var(--bg-active);
   border-left-color: var(--text-primary);
 }
 
@@ -647,7 +647,7 @@ onBeforeUnmount(async () => {
 .folder-dropdown {
   position: fixed;
   z-index: 99999;
-  background-color: #ffffff;
+  background-color: var(--bg-primary);
   border-radius: 10px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.08);
   padding: 6px 0;
@@ -656,7 +656,6 @@ onBeforeUnmount(async () => {
 }
 
 [data-theme='dark'] .folder-dropdown {
-  background-color: #2a2725;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 0, 0, 0.2);
 }
 
@@ -671,39 +670,23 @@ onBeforeUnmount(async () => {
   gap: 10px;
   padding: 9px 16px;
   font-size: 13px;
-  color: #1c1917;
+  color: var(--text-primary);
   cursor: pointer;
   transition: background-color 0.1s;
   user-select: none;
 }
 
-[data-theme='dark'] .folder-item {
-  color: rgba(255, 255, 255, 0.92);
-}
-
 .folder-item:hover {
-  background-color: rgba(0, 0, 0, 0.06);
-}
-
-[data-theme='dark'] .folder-item:hover {
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: var(--bg-hover);
 }
 
 .folder-item.active {
-  background-color: rgba(0, 0, 0, 0.08);
-}
-
-[data-theme='dark'] .folder-item.active {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--bg-active);
 }
 
 .folder-item svg {
   flex-shrink: 0;
-  color: #78716c;
-}
-
-[data-theme='dark'] .folder-item svg {
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-secondary);
 }
 
 .folder-info {
@@ -720,17 +703,13 @@ onBeforeUnmount(async () => {
 
 .folder-count {
   font-size: 11px;
-  color: #a8a29e;
-}
-
-[data-theme='dark'] .folder-count {
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--text-tertiary);
 }
 
 .context-menu {
   position: fixed;
   z-index: 99999;
-  background-color: #ffffff;
+  background-color: var(--bg-primary);
   border-radius: 10px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.08);
   padding: 6px 0;
@@ -739,7 +718,6 @@ onBeforeUnmount(async () => {
 }
 
 [data-theme='dark'] .context-menu {
-  background-color: #2a2725;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 0, 0, 0.2);
 }
 
@@ -756,24 +734,24 @@ onBeforeUnmount(async () => {
 }
 
 [data-theme='dark'] .context-item {
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--text-primary);
 }
 
 .context-item:hover {
-  background-color: rgba(0, 0, 0, 0.06);
+  background-color: var(--bg-hover);
 }
 
 [data-theme='dark'] .context-item:hover {
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: var(--bg-hover);
 }
 
 .context-item svg {
   flex-shrink: 0;
-  color: #78716c;
+  color: var(--text-secondary);
 }
 
 [data-theme='dark'] .context-item svg {
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-secondary);
 }
 
 .context-item.danger {
@@ -791,11 +769,11 @@ onBeforeUnmount(async () => {
 
 .context-divider {
   height: 1px;
-  background-color: #e7e5e4;
+  background-color: var(--border-color);
   margin: 4px 12px;
 }
 
 [data-theme='dark'] .context-divider {
-  background-color: #3f3f46;
+  background-color: var(--border-color);
 }
 </style>

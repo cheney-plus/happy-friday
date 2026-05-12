@@ -319,7 +319,7 @@ function getTypeLabel(type: string): string {
 .knowledge-base {
   display: flex;
   height: 100vh;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .kb-sidebar {
@@ -327,7 +327,7 @@ function getTypeLabel(type: string): string {
   min-width: 240px;
   display: flex;
   flex-direction: column;
-  background: #fafafa;
+  background: var(--bg-secondary);
 
   .sidebar-content {
     flex: 1;
@@ -346,13 +346,13 @@ function getTypeLabel(type: string): string {
         transition: background 0.2s;
 
         &:hover {
-          background: rgba(0, 0, 0, 0.04);
+          background: var(--bg-hover);
         }
 
         .expand-icon {
           margin-right: 6px;
           transition: transform 0.2s;
-          color: #666;
+          color: var(--text-secondary);
 
           &.expanded {
             transform: rotate(90deg);
@@ -363,7 +363,7 @@ function getTypeLabel(type: string): string {
           flex: 1;
           font-size: 14px;
           font-weight: 500;
-          color: #333;
+          color: var(--text-primary);
         }
 
         .add-btn {
@@ -374,10 +374,10 @@ function getTypeLabel(type: string): string {
           border-radius: 4px;
           opacity: 0;
           transition: all 0.2s;
-          color: #666;
+          color: var(--text-secondary);
 
           &:hover {
-            background: rgba(0, 0, 0, 0.08);
+            background: var(--bg-active);
             opacity: 1;
           }
         }
@@ -396,27 +396,27 @@ function getTypeLabel(type: string): string {
           transition: background 0.2s;
 
           &:hover {
-            background: rgba(0, 0, 0, 0.04);
+            background: var(--bg-hover);
           }
 
           &.active {
-            background: #e8f4f8;
-            color: #1890ff;
+            background: var(--accent-light);
+            color: var(--accent-color);
 
             .item-icon {
-              color: #1890ff;
+              color: var(--accent-color);
             }
           }
 
           .item-icon {
             margin-right: 8px;
-            color: #999;
+            color: var(--text-tertiary);
             flex-shrink: 0;
           }
 
           .item-name {
             font-size: 13px;
-            color: #333;
+            color: var(--text-primary);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -431,7 +431,7 @@ function getTypeLabel(type: string): string {
 
       .footer-text {
         font-size: 12px;
-        color: #999;
+        color: var(--text-tertiary);
         text-align: center;
       }
     }
@@ -450,7 +450,7 @@ function getTypeLabel(type: string): string {
     align-items: center;
     justify-content: space-between;
     padding: 12px 24px;
-    background: #fff;
+    background: var(--bg-primary);
 
     .header-left {
       display: flex;
@@ -463,12 +463,12 @@ function getTypeLabel(type: string): string {
         background: transparent;
         cursor: pointer;
         border-radius: 4px;
-        color: #666;
+        color: var(--text-secondary);
         transition: all 0.2s;
 
         &:hover:not(:disabled) {
-          background: rgba(0, 0, 0, 0.04);
-          color: #333;
+          background: var(--bg-hover);
+          color: var(--text-primary);
         }
 
         &:disabled {
@@ -480,7 +480,7 @@ function getTypeLabel(type: string): string {
       .page-title {
         font-size: 16px;
         font-weight: 600;
-        color: #333;
+        color: var(--text-primary);
         margin: 0;
       }
     }
@@ -496,12 +496,12 @@ function getTypeLabel(type: string): string {
         background: transparent;
         cursor: pointer;
         border-radius: 4px;
-        color: #666;
+        color: var(--text-secondary);
         transition: all 0.2s;
 
         &:hover {
-          background: rgba(0, 0, 0, 0.04);
-          color: #333;
+          background: var(--bg-hover);
+          color: var(--text-primary);
         }
       }
     }
@@ -517,17 +517,17 @@ function getTypeLabel(type: string): string {
     align-content: start;
 
     .file-card {
-      border: 1px solid #e8e8e8;
+      border: 1px solid var(--border-color);
       border-radius: 10px;
       padding: 12px;
       cursor: pointer;
       transition: all 0.25s ease;
-      background: #fff;
+      background: var(--bg-primary);
       display: flex;
       flex-direction: column;
 
       &:hover {
-        border-color: #d0d0d0;
+        border-color: var(--text-tertiary);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         transform: translateY(-3px);
       }
@@ -561,7 +561,7 @@ function getTypeLabel(type: string): string {
         .file-name {
           font-size: 12.5px;
           font-weight: 500;
-          color: #333;
+          color: var(--text-primary);
           margin: 0 0 auto 6px;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -579,7 +579,7 @@ function getTypeLabel(type: string): string {
           width: 100%;
           gap: 6px;
           font-size: 11px;
-          color: #999;
+          color: var(--text-tertiary);
 
           .meta-left {
             display: flex;
@@ -595,7 +595,7 @@ function getTypeLabel(type: string): string {
           }
 
           .meta-date {
-            color: #999;
+            color: var(--text-tertiary);
           }
 
           .meta-type {
@@ -624,8 +624,8 @@ function getTypeLabel(type: string): string {
   .input-wrapper {
     max-width: 680px;
     margin: 0 auto;
-    background: #ffffff;
-    border: 1.5px solid #e5e5e5;
+    background: var(--bg-primary);
+    border: 1.5px solid var(--border-color);
     border-radius: 22px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     overflow: hidden;
@@ -633,7 +633,7 @@ function getTypeLabel(type: string): string {
   }
 
   .input-wrapper:focus-within {
-    border-color: #d4d4d4;
+    border-color: var(--text-tertiary);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   }
 
@@ -645,7 +645,7 @@ function getTypeLabel(type: string): string {
     resize: none;
     font-size: 14px;
     line-height: 1.5;
-    color: #1a1a1a;
+    color: var(--text-primary);
     background: transparent;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     min-height: 40px;
@@ -662,16 +662,16 @@ function getTypeLabel(type: string): string {
   }
 
   .main-input::-webkit-scrollbar-thumb {
-    background: #d1d5db;
+    background: var(--border-color);
     border-radius: 10px;
   }
 
   .main-input::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
+    background: var(--text-tertiary);
   }
 
   .main-input::placeholder {
-    color: #9ca3af;
+    color: var(--text-tertiary);
   }
 
   .input-actions {
@@ -695,7 +695,7 @@ function getTypeLabel(type: string): string {
     padding: 6px 11px;
     border: none;
     background: transparent;
-    color: #374151;
+    color: var(--text-primary);
     cursor: pointer;
     border-radius: 16px;
     font-size: 12.5px;
@@ -705,7 +705,7 @@ function getTypeLabel(type: string): string {
   }
 
   .action-btn:hover {
-    background: #f3f4f6;
+    background: var(--bg-secondary);
   }
 
   .dropdown-btn span {
@@ -713,13 +713,13 @@ function getTypeLabel(type: string): string {
   }
 
   .dropdown-btn {
-    border: 1px solid #e5e7eb;
-    background: #ffffff;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
   }
 
   .dropdown-btn:hover {
-    background: #f9fafb;
-    border-color: #d1d5db;
+    background: var(--bg-secondary);
+    border-color: var(--text-tertiary);
   }
 
   .icon-only {
@@ -727,7 +727,7 @@ function getTypeLabel(type: string): string {
   }
 
   .icon-only:not(.send-btn) {
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border-color);
     border-radius: 50%;
     width: 30px;
     height: 30px;
@@ -744,7 +744,7 @@ function getTypeLabel(type: string): string {
     width: 32px;
     height: 32px;
     border: none;
-    background: #9ca3af;
+    background: var(--text-tertiary);
     color: #ffffff;
     cursor: pointer;
     border-radius: 50%;
@@ -753,7 +753,7 @@ function getTypeLabel(type: string): string {
   }
 
   .send-btn.active {
-    background: #374151;
+    background: var(--text-secondary);
     color: #ffffff;
   }
 

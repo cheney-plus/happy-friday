@@ -358,8 +358,8 @@ defineExpose({ loadSessions });
   right: 12px;
   bottom: 30px;
   width: 200px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-radius: 18px;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.04);
   z-index: 99;
@@ -374,13 +374,13 @@ defineExpose({ loadSessions });
   justify-content: space-between;
   padding: 12px 16px 10px;
   flex-shrink: 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .drawer-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary);
   letter-spacing: -0.01em;
 }
 
@@ -392,15 +392,15 @@ defineExpose({ loadSessions });
   height: 24px;
   border: none;
   background: transparent;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.15s ease;
 }
 
 .drawer-close-btn:hover {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .drawer-body {
@@ -418,12 +418,12 @@ defineExpose({ loadSessions });
 }
 
 .drawer-body::-webkit-scrollbar-thumb {
-  background: #e5e7eb;
+  background: var(--border-color);
   border-radius: 10px;
 }
 
 .drawer-body::-webkit-scrollbar-thumb:hover {
-  background: #d1d5db;
+  background: var(--text-tertiary);
 }
 
 .drawer-empty {
@@ -433,7 +433,7 @@ defineExpose({ loadSessions });
   justify-content: center;
   gap: 8px;
   padding: 36px 16px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   font-size: 13px;
 }
 
@@ -454,7 +454,7 @@ defineExpose({ loadSessions });
 }
 
 .session-item:hover {
-  background: #f9fafb;
+  background: var(--bg-secondary);
 }
 
 .session-info {
@@ -468,7 +468,7 @@ defineExpose({ loadSessions });
 .session-title {
   font-size: 13px;
   font-weight: 500;
-  color: #1a1a1a;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -477,7 +477,7 @@ defineExpose({ loadSessions });
 
 .session-time {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   line-height: 1.2;
 }
 
@@ -489,7 +489,7 @@ defineExpose({ loadSessions });
   height: 24px;
   border: none;
   background: transparent;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   cursor: pointer;
   border-radius: 6px;
   flex-shrink: 0;
@@ -502,8 +502,8 @@ defineExpose({ loadSessions });
 }
 
 .session-menu-btn:hover {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .session-menu-overlay {
@@ -516,8 +516,8 @@ defineExpose({ loadSessions });
 }
 
 .session-menu {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.04);
   padding: 3px;
@@ -532,7 +532,7 @@ defineExpose({ loadSessions });
   padding: 7px 12px;
   border: none;
   background: transparent;
-  color: #374151;
+  color: var(--text-primary);
   font-size: 12.5px;
   font-weight: 450;
   cursor: pointer;
@@ -542,7 +542,7 @@ defineExpose({ loadSessions });
 }
 
 .menu-item:hover {
-  background: #f3f4f6;
+  background: var(--bg-hover);
 }
 
 .menu-item.delete-item {
@@ -570,7 +570,7 @@ defineExpose({ loadSessions });
 }
 
 .rename-modal {
-  background: #ffffff;
+  background: var(--bg-primary);
   border-radius: 16px;
   padding: 24px;
   width: 360px;
@@ -586,25 +586,25 @@ defineExpose({ loadSessions });
 .rename-modal-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary);
   margin-bottom: 16px;
 }
 
 .rename-input {
   width: 100%;
   padding: 10px 14px;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border-color);
   border-radius: 10px;
   font-size: 14px;
-  color: #1a1a1a;
-  background: #ffffff;
+  color: var(--text-primary);
+  background: var(--bg-primary);
   outline: none;
   transition: border-color 0.2s ease;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .rename-input:focus {
-  border-color: #a3a3a3;
+  border-color: var(--text-tertiary);
 }
 
 .rename-modal-actions {
@@ -626,21 +626,21 @@ defineExpose({ loadSessions });
 }
 
 .rename-cancel-btn {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .rename-cancel-btn:hover {
-  background: #e5e7eb;
+  background: var(--border-color);
 }
 
 .rename-confirm-btn {
-  background: #1a1a1a;
+  background: var(--text-primary);
   color: #ffffff;
 }
 
 .rename-confirm-btn:hover {
-  background: #374151;
+  background: var(--text-secondary);
 }
 
 .drawer-enter-active {
