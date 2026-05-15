@@ -485,6 +485,8 @@ const handleFeatureClick = (id: string) => {
 }
 
 .input-wrapper {
+  max-width: 750px;
+  margin: 0 auto;
   background: var(--bg-primary);
   border: 1.5px solid var(--border-color);
   border-radius: 28px;
@@ -602,8 +604,8 @@ const handleFeatureClick = (id: string) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   border: none;
   background: var(--text-tertiary);
   color: #ffffff;

@@ -52,7 +52,9 @@
     <ChatInputBox
       v-model="inputText"
       placeholder="输入消息..."
+      :is-streaming="isStreaming"
       @send="handleSend"
+      @stop="handleStop"
     />
 
     <Transition name="scroll-btn">
@@ -297,6 +299,16 @@ async function sendChatMessage(text: string) {
 function handleSend(e?: Event) {
   if (e instanceof KeyboardEvent && e.isComposing) return;
   sendChatMessage(inputText.value);
+}
+
+async function handleStop() {
+  if (!isStreaming.value || !activeRequestId) return;
+
+  try {
+    await invoke('stop_chat', { requestId: activeRequestId });
+  } catch (err) {
+    console.error('Stop chat error:', err);
+  }
 }
 
 async function loadSessionHistory(sessionId: string) {

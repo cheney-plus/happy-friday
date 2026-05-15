@@ -1,8 +1,11 @@
 use futures_util::StreamExt;
 use reqwest::Client;
 use serde_json::{json, Value};
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 
+use crate::cancellation;
 use crate::error::AppError;
 use crate::events::{CHAT_CHUNK, CHAT_ERROR, CHAT_REASONING_CHUNK};
 use crate::types::{
@@ -20,6 +23,7 @@ pub async fn stream_chat(
     request_id: &str,
     session_id: Option<&str>,
     enable_thinking: bool,
+    cancel_token: Option<Arc<AtomicBool>>,
 ) -> Result<(String, String), AppError> {
     let url = build_api_url(&model.base_url);
 
@@ -34,11 +38,28 @@ pub async fn stream_chat(
         "stream": true
     });
 
-    if enable_thinking {
-        body.as_object_mut().unwrap().insert(
-            "enable_thinking".to_string(),
-            json!(true),
-        );
+    match model.provider.as_str() {
+        "qwen" => {
+            body.as_object_mut().unwrap().insert(
+                "enable_thinking".to_string(),
+                json!(enable_thinking),
+            );
+        }
+        "minimax" => {
+            if enable_thinking {
+                body.as_object_mut().unwrap().insert(
+                    "reasoning_split".to_string(),
+                    json!(true),
+                );
+            }
+        }
+        "deepseek" | "zhipu" | "kimi" | "doubao" => {
+            body.as_object_mut().unwrap().insert(
+                "thinking".to_string(),
+                json!({"type": if enable_thinking { "enabled" } else { "disabled" }}),
+            );
+        }
+        _ => {}
     }
 
     let client = Client::new();
@@ -71,6 +92,12 @@ pub async fn stream_chat(
     let mut full_reasoning = String::new();
 
     while let Some(chunk_result) = stream.next().await {
+        if let Some(ref token) = cancel_token {
+            if cancellation::is_cancelled(token) {
+                return Ok((full_content, full_reasoning));
+            }
+        }
+
         let chunk = chunk_result?;
         buffer.push_str(&String::from_utf8_lossy(&chunk));
 
@@ -146,7 +173,7 @@ pub async fn generate_title(
 ) -> Result<String, AppError> {
     let url = build_api_url(&model.base_url);
 
-    let body = json!({
+    let mut body = json!({
         "model": model.model_name,
         "messages": [
             {"role": "system", "content": "请用5-10个字总结概括以下用户的消息内容，只需要总结概括，不要展开扩展。不要加引号或其他格式。"},
@@ -155,6 +182,23 @@ pub async fn generate_title(
         "stream": false,
         "max_tokens": 50
     });
+
+    match model.provider.as_str() {
+        "qwen" => {
+            body.as_object_mut().unwrap().insert(
+                "enable_thinking".to_string(),
+                json!(false),
+            );
+        }
+        "minimax" => {}
+        "deepseek" | "zhipu" | "kimi" | "doubao" => {
+            body.as_object_mut().unwrap().insert(
+                "thinking".to_string(),
+                json!({"type": "disabled"}),
+            );
+        }
+        _ => {}
+    }
 
     let client = Client::new();
     let response = client

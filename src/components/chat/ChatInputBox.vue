@@ -4,10 +4,11 @@
       <textarea
         :value="modelValue"
         class="main-input"
-        :placeholder="placeholder"
+        :placeholder="isStreaming ? 'AI 正在思考...' : placeholder"
         rows="1"
         @input="handleInput"
         @keydown.enter.exact="handleSendKeydown"
+        :disabled="isStreaming"
         ref="textareaRef"
       ></textarea>
 
@@ -39,16 +40,30 @@
             </svg>
           </button>
 
-          <button
-            class="send-btn"
-            :class="{ active: modelValue.trim() }"
-            @click="$emit('send')"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-          </button>
+          <Transition name="btn-switch" mode="out-in">
+            <button
+              v-if="isStreaming"
+              key="stop"
+              class="stop-btn"
+              @click="$emit('stop')"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+              </svg>
+            </button>
+            <button
+              v-else
+              key="send"
+              class="send-btn"
+              :class="{ active: modelValue.trim() }"
+              @click="$emit('send')"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </Transition>
         </div>
       </div>
     </div>
@@ -61,11 +76,13 @@ import { ref } from 'vue';
 defineProps<{
   modelValue: string;
   placeholder?: string;
+  isStreaming?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void;
   (e: 'send'): void;
+  (e: 'stop'): void;
 }>();
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
@@ -128,6 +145,11 @@ function autoResize() {
   min-height: 38px;
   max-height: 160px;
   overflow-y: auto;
+}
+
+.main-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .main-input::-webkit-scrollbar {
@@ -222,5 +244,47 @@ function autoResize() {
 
 .send-btn:hover {
   transform: scale(1.06);
+}
+
+.stop-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--text-primary);
+  color: #ffffff;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  margin-left: 2px;
+}
+
+.stop-btn:hover {
+  transform: scale(1.06);
+  opacity: 0.85;
+}
+
+.stop-btn:active {
+  transform: scale(0.94);
+}
+
+.btn-switch-enter-active {
+  transition: all 0.2s ease;
+}
+
+.btn-switch-leave-active {
+  transition: all 0.15s ease;
+}
+
+.btn-switch-enter-from {
+  opacity: 0;
+  transform: scale(0.7);
+}
+
+.btn-switch-leave-to {
+  opacity: 0;
+  transform: scale(0.7);
 }
 </style>

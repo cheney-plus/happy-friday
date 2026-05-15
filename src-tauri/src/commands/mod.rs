@@ -1,5 +1,6 @@
 use tauri::{AppHandle, Emitter, Manager, State, command};
 
+use crate::cancellation::CancellationTokens;
 use crate::config::{load_config, save_config};
 use crate::db::{self, DbState};
 use crate::error::AppResult;
@@ -65,6 +66,7 @@ pub fn update_session_title(
 pub async fn chat_with_memory(
     app: AppHandle,
     db: State<'_, DbState>,
+    cancel_tokens: State<'_, CancellationTokens>,
     request_id: String,
     session_id: String,
     model: ModelConfig,
@@ -104,6 +106,8 @@ pub async fn chat_with_memory(
     }];
     all_messages.extend(history_messages);
 
+    let cancel_token = cancel_tokens.insert(request_id.clone());
+
     let (full_content, full_reasoning) = llm::stream_chat(
         &app,
         all_messages,
@@ -111,8 +115,11 @@ pub async fn chat_with_memory(
         &request_id,
         Some(&session.id),
         enable_thinking.unwrap_or(false),
+        Some(cancel_token.clone()),
     )
     .await?;
+
+    cancel_tokens.remove(&request_id);
 
     let assistant_message = {
         let conn = db.0.lock().map_err(|e| crate::error::AppError::Database(e.to_string()))?;
@@ -167,6 +174,7 @@ pub async fn chat_with_memory(
 #[command]
 pub async fn chat_without_memory(
     app: AppHandle,
+    cancel_tokens: State<'_, CancellationTokens>,
     request_id: String,
     model: ModelConfig,
     message: String,
@@ -184,7 +192,11 @@ pub async fn chat_without_memory(
         },
     ];
 
-    let (full_content, full_reasoning) = llm::stream_chat(&app, messages, &model, &request_id, None, enable_thinking.unwrap_or(false)).await?;
+    let cancel_token = cancel_tokens.insert(request_id.clone());
+
+    let (full_content, full_reasoning) = llm::stream_chat(&app, messages, &model, &request_id, None, enable_thinking.unwrap_or(false), Some(cancel_token.clone())).await?;
+
+    cancel_tokens.remove(&request_id);
 
     let _ = app.emit(
         CHAT_DONE,
@@ -318,6 +330,12 @@ pub fn delete_schedule_event(db: State<'_, DbState>, event_id: String) -> AppRes
     db::delete_schedule_event(&conn, &event_id)
 }
 
+#[command]
+pub fn stop_chat(cancel_tokens: State<'_, CancellationTokens>, request_id: String) -> AppResult<()> {
+    cancel_tokens.cancel(&request_id);
+    Ok(())
+}
+
 pub fn get_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool {
     tauri::generate_handler![
         get_config,
@@ -330,6 +348,7 @@ pub fn get_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool {
         update_session_title,
         chat_with_memory,
         chat_without_memory,
+        stop_chat,
         get_notes,
         get_note,
         create_note,

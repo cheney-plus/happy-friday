@@ -14,6 +14,8 @@ pub enum AppError {
     Llm(String),
     #[error("Request Error: {0}")]
     Request(#[from] reqwest::Error),
+    #[error("Request Cancelled")]
+    Cancelled,
 }
 
 impl Serialize for AppError {
