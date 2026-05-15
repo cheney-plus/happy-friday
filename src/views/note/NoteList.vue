@@ -141,7 +141,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { reactive, ref, computed, onMounted, onBeforeUnmount, nextTick, onDeactivated } from 'vue';
 import { useI18n } from 'vue-i18n';
 import NoteEditor from './NoteEditor.vue';
 import { useNoteStore, type Note } from '@/store/modules/note';
@@ -347,6 +347,11 @@ onMounted(async () => {
 onBeforeUnmount(async () => {
   document.removeEventListener('click', handleClickOutside);
   await noteStore.flushPendingSave();
+});
+
+onDeactivated(() => {
+  folderMenuVisible.value = false;
+  contextMenu.visible = false;
 });
 </script>
 

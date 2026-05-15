@@ -30,19 +30,22 @@
           <AIMessage
             v-else
             :content="msg.content"
+            :reasoning="msg.reasoning"
             :show-divider="true"
             :show-rollback="currentMode === 'chat'"
             @action="(type) => handleAction(type, index)"
           />
         </template>
 
-        <AIMessage
-          v-if="isStreaming"
-          :content="streamingContent"
-          :is-streaming="true"
-          :show-divider="false"
-          :show-rollback="currentMode === 'chat'"
-        />
+        <template v-if="isStreaming">
+          <AIMessage
+            :content="streamingContent"
+            :reasoning-streaming-content="streamingReasoning"
+            :is-streaming="true"
+            :show-divider="false"
+            :show-rollback="currentMode === 'chat'"
+          />
+        </template>
       </div>
     </main>
 
@@ -51,6 +54,14 @@
       placeholder="输入消息..."
       @send="handleSend"
     />
+
+    <Transition name="scroll-btn">
+      <button v-if="showScrollDownBtn" class="scroll-down-btn" @click="scrollToBottomForce">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+    </Transition>
 
     <RollbackConfirmDialog
       :visible="rollbackDialogVisible"
@@ -62,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, nextTick, onMounted, onUnmounted, onDeactivated } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
@@ -78,7 +89,10 @@ const inputText = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
 const isStreaming = ref(false);
 const streamingContent = ref('');
+const streamingReasoning = ref('');
 const isRollingBack = ref(false);
+const isAtBottom = ref(true);
+const showScrollDownBtn = ref(false);
 
 const chatTitle = ref('与 Friday 的对话');
 const chatTime = ref(formatTime(new Date()));
@@ -87,6 +101,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   id?: number;
+  reasoning?: string;
 }
 
 const messages = ref<Message[]>([]);
@@ -94,6 +109,7 @@ const messages = ref<Message[]>([]);
 const currentMode = ref<string>('');
 const currentSessionId = ref<string>('');
 let unlistenChunk: UnlistenFn | null = null;
+let unlistenReasoning: UnlistenFn | null = null;
 let unlistenDone: UnlistenFn | null = null;
 let unlistenError: UnlistenFn | null = null;
 let unlistenTitle: UnlistenFn | null = null;
@@ -178,12 +194,34 @@ async function executeRollback() {
   }
 }
 
-function scrollToBottom() {
+function scrollToBottom(force = false) {
   nextTick(() => {
     if (messagesContainer.value) {
-      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+      if (force || isAtBottom.value) {
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+      }
     }
   });
+}
+
+function checkScrollPosition() {
+  const el = messagesContainer.value;
+  if (!el) return;
+  const threshold = 80;
+  const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+  isAtBottom.value = distanceFromBottom < threshold;
+  showScrollDownBtn.value = !isAtBottom.value && messages.value.length > 0;
+}
+
+function scrollToBottomForce() {
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTo({
+      top: messagesContainer.value.scrollHeight,
+      behavior: 'smooth'
+    });
+    showScrollDownBtn.value = false;
+    isAtBottom.value = true;
+  }
 }
 
 function loadModelConfig(modelId: string) {
@@ -224,7 +262,10 @@ async function sendChatMessage(text: string) {
   inputText.value = '';
   isStreaming.value = true;
   streamingContent.value = '';
-  scrollToBottom();
+  streamingReasoning.value = '';
+  showScrollDownBtn.value = false;
+  isAtBottom.value = true;
+  scrollToBottom(true);
 
   activeRequestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   isDoneReceived = false;
@@ -235,13 +276,15 @@ async function sendChatMessage(text: string) {
         requestId: activeRequestId,
         sessionId: currentSessionId.value || '',
         model: model,
-        message: text
+        message: text,
+        enableThinking: route.query.thinkMode === 'deep'
       });
     } else {
       await invoke<void>('chat_without_memory', {
         requestId: activeRequestId,
         model: model,
-        message: text
+        message: text,
+        enableThinking: route.query.thinkMode === 'deep'
       });
     }
   } catch (err) {
@@ -283,7 +326,10 @@ async function triggerAiResponse() {
 
   isStreaming.value = true;
   streamingContent.value = '';
-  scrollToBottom();
+  streamingReasoning.value = '';
+  showScrollDownBtn.value = false;
+  isAtBottom.value = true;
+  scrollToBottom(true);
 
   activeRequestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   isDoneReceived = false;
@@ -294,7 +340,8 @@ async function triggerAiResponse() {
         requestId: activeRequestId,
         sessionId: currentSessionId.value || '',
         model: model,
-        message: ''
+        message: '',
+        enableThinking: route.query.thinkMode === 'deep'
       });
     }
   } catch (err) {
@@ -307,6 +354,7 @@ async function triggerAiResponse() {
 async function initConversation() {
   isStreaming.value = false;
   streamingContent.value = '';
+  streamingReasoning.value = '';
   messages.value = [];
   activeRequestId = '';
   isDoneReceived = false;
@@ -357,7 +405,16 @@ onMounted(async () => {
     }
   );
 
-  unlistenDone = await listen<{ requestId: string; sessionId?: string; fullContent: string; messageId?: number; userMessageId?: number }>(
+  unlistenReasoning = await listen<{ requestId: string; sessionId?: string; content: string }>(
+    'chat-reasoning-chunk',
+    (event) => {
+      if (event.payload.requestId !== activeRequestId) return;
+      streamingReasoning.value += event.payload.content;
+      scrollToBottom();
+    }
+  );
+
+  unlistenDone = await listen<{ requestId: string; sessionId?: string; fullContent: string; reasoningContent: string; messageId?: number; userMessageId?: number }>(
     'chat-done',
     (event) => {
       if (event.payload.requestId !== activeRequestId) return;
@@ -375,10 +432,14 @@ onMounted(async () => {
         }
       }
 
-      if (streamingContent.value || event.payload.fullContent) {
+      const hasContent = streamingContent.value || event.payload.fullContent;
+      const hasReasoning = streamingReasoning.value || event.payload.reasoningContent;
+
+      if (hasContent || hasReasoning) {
         messages.value.push({
           role: 'assistant',
           content: event.payload.fullContent || streamingContent.value,
+          reasoning: event.payload.reasoningContent || streamingReasoning.value || undefined,
           id: event.payload.messageId
         });
       }
@@ -388,7 +449,9 @@ onMounted(async () => {
       }
 
       streamingContent.value = '';
-      scrollToBottom();
+      streamingReasoning.value = '';
+      showScrollDownBtn.value = false;
+      scrollToBottom(true);
     }
   );
 
@@ -398,6 +461,8 @@ onMounted(async () => {
       if (event.payload.requestId !== activeRequestId) return;
       isStreaming.value = false;
       streamingContent.value = '';
+      streamingReasoning.value = '';
+      showScrollDownBtn.value = false;
       console.error('Stream error:', event.payload.error);
     }
   );
@@ -412,13 +477,25 @@ onMounted(async () => {
   );
 
   await initConversation();
+
+  if (messagesContainer.value) {
+    messagesContainer.value.addEventListener('scroll', checkScrollPosition);
+  }
 });
 
 onUnmounted(() => {
   unlistenChunk?.();
+  unlistenReasoning?.();
   unlistenDone?.();
   unlistenError?.();
   unlistenTitle?.();
+  if (messagesContainer.value) {
+    messagesContainer.value.removeEventListener('scroll', checkScrollPosition);
+  }
+});
+
+onDeactivated(() => {
+  rollbackDialogVisible.value = false;
 });
 </script>
 
@@ -430,6 +507,7 @@ onUnmounted(() => {
   width: 100%;
   background-color: var(--bg-primary);
   overflow: hidden;
+  position: relative;
 }
 
 .conversation-header {
@@ -509,5 +587,54 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+.scroll-down-btn {
+  position: absolute;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 50%;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.06);
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+.scroll-down-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  transform: translateX(-50%) scale(1.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.scroll-down-btn:active {
+  transform: translateX(-50%) scale(0.95);
+}
+
+.scroll-btn-enter-active {
+  transition: all 0.25s ease-out;
+}
+
+.scroll-btn-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.scroll-btn-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.scroll-btn-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.9);
 }
 </style>

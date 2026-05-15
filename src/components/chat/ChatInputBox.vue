@@ -94,11 +94,12 @@ function autoResize() {
 <style scoped>
 .chat-input-box {
   flex-shrink: 0;
-  padding: 8px 58px 14px;
+  padding: 8px 24px 14px;
 }
 
 .input-wrapper {
-  max-width: 800px;
+  width: 100%;
+  max-width: 752px;
   margin: 0 auto;
   background: var(--bg-primary);
   border: 1.5px solid var(--border-color);

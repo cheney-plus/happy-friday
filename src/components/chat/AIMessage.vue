@@ -8,6 +8,30 @@
         <span class="ai-name">{{ displayName }}</span>
       </div>
 
+      <div v-if="hasReasoning" class="thinking-section">
+        <span class="thinking-toggle" @click="toggleThinking">
+          思考过程
+          <svg
+            class="thinking-arrow"
+            :class="{ collapsed: thinkingCollapsed }"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </span>
+        <div v-show="!thinkingCollapsed" class="thinking-body">
+          <div class="markdown-body" v-html="renderedReasoning"></div>
+          <span v-if="reasoningStreaming" class="streaming-cursor"></span>
+        </div>
+      </div>
+
       <div class="ai-body">
         <div class="markdown-body" v-html="renderedContent"></div>
         <span v-if="isStreaming" class="streaming-cursor"></span>
@@ -68,11 +92,15 @@ const props = withDefaults(defineProps<{
   showDivider?: boolean;
   isStreaming?: boolean;
   showRollback?: boolean;
+  reasoning?: string;
+  reasoningStreamingContent?: string;
 }>(), {
   displayName: '周五',
   showDivider: true,
   isStreaming: false,
-  showRollback: true
+  showRollback: true,
+  reasoning: '',
+  reasoningStreamingContent: ''
 });
 
 defineEmits<{
@@ -80,6 +108,27 @@ defineEmits<{
 }>();
 
 const copied = ref(false);
+const thinkingCollapsed = ref(false);
+
+const hasReasoning = computed(() => !!(props.reasoning || props.reasoningStreamingContent));
+
+const reasoningStreaming = computed(() => props.isStreaming && !!props.reasoningStreamingContent);
+
+const effectiveReasoning = computed(() =>
+  props.reasoningStreamingContent || props.reasoning || ''
+);
+
+const renderedReasoning = computed(() => {
+  const quoted = effectiveReasoning.value
+    .split('\n')
+    .map(line => `> ${line}`)
+    .join('\n');
+  return marked.parse(quoted) as string;
+});
+
+function toggleThinking() {
+  thinkingCollapsed.value = !thinkingCollapsed.value;
+}
 
 const renderedContent = computed(() => marked.parse(props.content) as string);
 
@@ -160,8 +209,56 @@ async function handleCopy() {
   letter-spacing: -0.01em;
 }
 
+.thinking-section {
+  padding-left: 0;
+}
+
+.thinking-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  user-select: none;
+  line-height: 1;
+}
+
+.thinking-toggle:hover {
+  color: var(--text-secondary);
+}
+
+.thinking-arrow {
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.thinking-arrow.collapsed {
+  transform: rotate(180deg);
+}
+
+.thinking-body {
+  margin-top: 8px;
+}
+
+.thinking-body :deep(.markdown-body) {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text-tertiary);
+}
+
+.thinking-body :deep(blockquote) {
+  margin: 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--border-color);
+  background: var(--bg-hover, rgba(0, 0, 0, 0.02));
+  border-radius: 0 8px 8px 0;
+  color: var(--text-tertiary);
+}
+
 .ai-body {
-  padding-left: 44px;
+  padding-left: 0;
   font-size: 14.5px;
   line-height: 1.7;
   color: var(--text-primary);
@@ -285,7 +382,7 @@ async function handleCopy() {
   align-items: center;
   justify-content: flex-end;
   gap: 2px;
-  padding-left: 44px;
+  padding-left: 0;
 }
 
 .action-icon-btn {

@@ -79,6 +79,15 @@ pub struct ChatChunkPayload {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ChatReasoningPayload {
+    #[serde(rename = "requestId")]
+    pub request_id: String,
+    #[serde(rename = "sessionId")]
+    pub session_id: Option<String>,
+    pub content: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ChatDonePayload {
     #[serde(rename = "requestId")]
     pub request_id: String,
@@ -86,6 +95,8 @@ pub struct ChatDonePayload {
     pub session_id: Option<String>,
     #[serde(rename = "fullContent")]
     pub full_content: String,
+    #[serde(rename = "reasoningContent")]
+    pub reasoning_content: String,
     #[serde(rename = "messageId")]
     pub message_id: Option<i64>,
     #[serde(rename = "userMessageId")]

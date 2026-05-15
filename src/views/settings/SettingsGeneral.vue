@@ -175,7 +175,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, computed, onMounted, onUnmounted } from 'vue';
+import { reactive, ref, computed, onMounted, onUnmounted, onDeactivated } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAppStore } from '@/store';
 import { useTheme } from '@/utils/theme';
@@ -238,6 +238,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+});
+
+onDeactivated(() => {
+  showThemeDropdown.value = false;
 });
 
 const goToModelSettings = () => {

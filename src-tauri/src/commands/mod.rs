@@ -69,6 +69,7 @@ pub async fn chat_with_memory(
     session_id: String,
     model: ModelConfig,
     message: String,
+    enable_thinking: Option<bool>,
 ) -> AppResult<ChatResult> {
     let (session, history_messages, is_new_session, user_message_id) = {
         let conn = db.0.lock().map_err(|e| crate::error::AppError::Database(e.to_string()))?;
@@ -103,12 +104,13 @@ pub async fn chat_with_memory(
     }];
     all_messages.extend(history_messages);
 
-    let full_content = llm::stream_chat(
+    let (full_content, full_reasoning) = llm::stream_chat(
         &app,
         all_messages,
         &model,
         &request_id,
         Some(&session.id),
+        enable_thinking.unwrap_or(false),
     )
     .await?;
 
@@ -125,6 +127,7 @@ pub async fn chat_with_memory(
             request_id: request_id.clone(),
             session_id: Some(session.id.clone()),
             full_content: full_content.clone(),
+            reasoning_content: full_reasoning.clone(),
             message_id: Some(assistant_message.id),
             user_message_id: Some(user_message_id),
         },
@@ -167,6 +170,7 @@ pub async fn chat_without_memory(
     request_id: String,
     model: ModelConfig,
     message: String,
+    enable_thinking: Option<bool>,
 ) -> AppResult<()> {
     let app_config = load_config(&app)?;
     let messages = vec![
@@ -180,7 +184,7 @@ pub async fn chat_without_memory(
         },
     ];
 
-    let full_content = llm::stream_chat(&app, messages, &model, &request_id, None).await?;
+    let (full_content, full_reasoning) = llm::stream_chat(&app, messages, &model, &request_id, None, enable_thinking.unwrap_or(false)).await?;
 
     let _ = app.emit(
         CHAT_DONE,
@@ -188,6 +192,7 @@ pub async fn chat_without_memory(
             request_id: request_id.clone(),
             session_id: None,
             full_content,
+            reasoning_content: full_reasoning,
             message_id: None,
             user_message_id: None,
         },

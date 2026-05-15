@@ -4,9 +4,9 @@ use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter};
 
 use crate::error::AppError;
-use crate::events::{CHAT_CHUNK, CHAT_ERROR};
+use crate::events::{CHAT_CHUNK, CHAT_ERROR, CHAT_REASONING_CHUNK};
 use crate::types::{
-    ChatChunkPayload, ChatErrorPayload, ChatMessage, ModelConfig,
+    ChatChunkPayload, ChatErrorPayload, ChatMessage, ChatReasoningPayload, ModelConfig,
 };
 
 fn build_api_url(base_url: &str) -> String {
@@ -19,7 +19,8 @@ pub async fn stream_chat(
     model: &ModelConfig,
     request_id: &str,
     session_id: Option<&str>,
-) -> Result<String, AppError> {
+    enable_thinking: bool,
+) -> Result<(String, String), AppError> {
     let url = build_api_url(&model.base_url);
 
     let messages_json: Vec<Value> = messages
@@ -27,11 +28,18 @@ pub async fn stream_chat(
         .map(|m| json!({"role": m.role, "content": m.content}))
         .collect();
 
-    let body = json!({
+    let mut body = json!({
         "model": model.model_name,
         "messages": messages_json,
         "stream": true
     });
+
+    if enable_thinking {
+        body.as_object_mut().unwrap().insert(
+            "enable_thinking".to_string(),
+            json!(true),
+        );
+    }
 
     let client = Client::new();
     let response = client
@@ -60,6 +68,7 @@ pub async fn stream_chat(
     let mut stream = response.bytes_stream();
     let mut buffer = String::new();
     let mut full_content = String::new();
+    let mut full_reasoning = String::new();
 
     while let Some(chunk_result) = stream.next().await {
         let chunk = chunk_result?;
@@ -77,7 +86,7 @@ pub async fn stream_chat(
                 let data = data.trim();
 
                 if data == "[DONE]" {
-                    return Ok(full_content);
+                    return Ok((full_content, full_reasoning));
                 }
 
                 if let Ok(parsed) = serde_json::from_str::<Value>(data) {
@@ -97,6 +106,20 @@ pub async fn stream_chat(
                         return Err(AppError::Llm(error_msg));
                     }
 
+                    if let Some(reasoning) =
+                        parsed["choices"][0]["delta"]["reasoning_content"].as_str()
+                    {
+                        full_reasoning.push_str(reasoning);
+                        let _ = app.emit(
+                            CHAT_REASONING_CHUNK,
+                            ChatReasoningPayload {
+                                request_id: request_id.to_string(),
+                                session_id: session_id.map(|s| s.to_string()),
+                                content: reasoning.to_string(),
+                            },
+                        );
+                    }
+
                     if let Some(content) = parsed["choices"][0]["delta"]["content"].as_str() {
                         full_content.push_str(content);
 
@@ -114,7 +137,7 @@ pub async fn stream_chat(
         }
     }
 
-    Ok(full_content)
+    Ok((full_content, full_reasoning))
 }
 
 pub async fn generate_title(

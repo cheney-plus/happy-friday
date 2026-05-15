@@ -135,11 +135,11 @@
                   :class="{ active: modelSettings.modelId === model.id }"
                   @click="selectModel(model.id)"
                 >
+                  <img :src="model.icon" class="model-icon" alt="" />
                   <div class="model-info">
                     <span class="model-name">{{ model.name }}</span>
                     <span v-if="model.badge" class="model-badge">{{ model.badge }}</span>
                   </div>
-                  <span class="model-desc">{{ model.desc }}</span>
                   <svg v-if="modelSettings.modelId === model.id" class="model-check" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
               </div>
@@ -169,7 +169,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, onDeactivated, onActivated } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { invoke } from '@tauri-apps/api/core';
@@ -225,28 +225,34 @@ const loadCustomModels = () => {
         modelSettings.value.modelId = selectedId;
       } else if (customModels.value.length > 0) {
         modelSettings.value.modelId = customModels.value[0].id;
+      } else {
+        modelSettings.value.modelId = '';
       }
+    } else {
+      customModels.value = [];
+      modelSettings.value.modelId = '';
     }
   } catch (error) {
     console.error('Failed to load custom models:', error);
   }
 };
 
-const modelList = computed(() => {
-  const descriptions: Record<string, string> = {
-    doubao: '通用对话与创作',
-    qwen: '多模态理解与生成',
-    zhipu: '复杂任务分析',
-    deepseek: '逻辑推理与代码',
-    kimi: '长文本处理',
-    minimax: '智能对话助手'
-  };
+const providerIcons: Record<string, string> = {
+  doubao: new URL('@/assets/images/豆包.png', import.meta.url).href,
+  qwen: new URL('@/assets/images/千问.png', import.meta.url).href,
+  zhipu: new URL('@/assets/images/智谱logo.png', import.meta.url).href,
+  deepseek: new URL('@/assets/images/deepseek.png', import.meta.url).href,
+  kimi: new URL('@/assets/images/kimi-icon.png', import.meta.url).href,
+  minimax: new URL('@/assets/images/MiniMax.png', import.meta.url).href,
+  other: new URL('@/assets/images/其他模型.png', import.meta.url).href
+};
 
+const modelList = computed(() => {
   return customModels.value.map(model => ({
     id: model.id,
     name: `${model.providerLabel} ${model.modelName}`,
-    badge: '',
-    desc: descriptions[model.provider] || '自定义模型'
+    icon: providerIcons[model.provider] || providerIcons.other,
+    badge: ''
   }));
 });
 
@@ -292,7 +298,9 @@ const selectModel = (modelId: string) => {
 
 const currentModelName = computed(() => {
   const model = customModels.value.find(m => m.id === modelSettings.value.modelId);
-  return model ? `${model.providerLabel} ${model.modelName}` : '选择模型';
+  if (!model) return '选择模型';
+  const thinkLabel = modelSettings.value.thinkMode === 'deep' ? '· 深度' : '· 快速';
+  return `${model.modelName} ${thinkLabel}`;
 });
 
 const closeAllDropdowns = () => {
@@ -313,7 +321,8 @@ const handleSend = async () => {
       query: {
         q: text,
         mode: currentMode.value,
-        modelId: selectedModel.id
+        modelId: selectedModel.id,
+        thinkMode: modelSettings.value.thinkMode
       }
     });
   } else if (currentMode.value === 'memoryless' && selectedModel) {
@@ -323,7 +332,8 @@ const handleSend = async () => {
       query: {
         q: text,
         mode: currentMode.value,
-        modelId: selectedModel.id
+        modelId: selectedModel.id,
+        thinkMode: modelSettings.value.thinkMode
       }
     });
   }
@@ -336,6 +346,15 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('scroll', closeAllDropdowns, true);
+});
+
+onDeactivated(() => {
+  showModeDropdown.value = false;
+  showModelDropdown.value = false;
+});
+
+onActivated(() => {
+  loadCustomModels();
 });
 
 const features = [
@@ -645,7 +664,7 @@ const handleFeatureClick = (id: string) => {
 }
 
 .model-dropdown {
-  width: 320px;
+  min-width: 320px;
   padding: 16px;
 }
 
@@ -756,12 +775,11 @@ const handleFeatureClick = (id: string) => {
 .model-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px;
+  padding: 10px 14px;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.12s ease;
-  gap: 8px;
+  gap: 10px;
 }
 
 .model-item:hover {
@@ -772,17 +790,27 @@ const handleFeatureClick = (id: string) => {
   background: #ecfdf5;
 }
 
+.model-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .model-info {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .model-name {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
+  white-space: nowrap;
 }
 
 .model-item.active .model-name {
@@ -796,13 +824,6 @@ const handleFeatureClick = (id: string) => {
   background: #d1fae5;
   padding: 2px 8px;
   border-radius: 6px;
-}
-
-.model-desc {
-  font-size: 12.5px;
-  color: var(--text-tertiary);
-  flex: 1;
-  text-align: right;
 }
 
 .model-check {

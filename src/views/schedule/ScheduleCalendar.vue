@@ -298,7 +298,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, nextTick, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, reactive, nextTick, onMounted, onUnmounted, watch, onDeactivated } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useScheduleStore, EVENT_COLORS, type ScheduleEvent } from '@/store/modules/schedule';
@@ -1007,6 +1007,11 @@ onUnmounted(() => {
     clearInterval(nowTimer);
     nowTimer = null;
   }
+});
+
+onDeactivated(() => {
+  contextMenuVisible.value = false;
+  modalVisible.value = false;
 });
 </script>
 

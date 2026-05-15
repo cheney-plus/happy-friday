@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, computed, reactive, onMounted, onBeforeUnmount, watch, onDeactivated } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAppStore } from '@/store';
@@ -187,6 +187,10 @@ onMounted(async () => {
 onBeforeUnmount(async () => {
   document.removeEventListener('click', handleClickOutside);
   await noteStore.flushPendingSave();
+});
+
+onDeactivated(() => {
+  moreMenuVisible.value = false;
 });
 </script>
 

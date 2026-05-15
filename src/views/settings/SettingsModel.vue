@@ -182,7 +182,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, onDeactivated } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -287,6 +287,7 @@ const executeDelete = () => {
 
   if (selectedModel.value === targetId) {
     selectedModel.value = customModels.value.length > 0 ? customModels.value[0].id : '';
+    localStorage.setItem('happy-friday-selected-model', selectedModel.value);
   }
 
   showDeleteConfirm.value = false;
@@ -332,6 +333,13 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+});
+
+onDeactivated(() => {
+  showModelDropdown.value = false;
+  showProviderDropdown.value = false;
+  showAddModal.value = false;
+  showDeleteConfirm.value = false;
 });
 
 const STORAGE_KEY = 'happy-friday-custom-models';

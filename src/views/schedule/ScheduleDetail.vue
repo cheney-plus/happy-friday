@@ -164,7 +164,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, nextTick, onMounted } from 'vue';
+import { ref, reactive, computed, nextTick, onMounted, onDeactivated } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useScheduleStore, EVENT_COLORS } from '@/store/modules/schedule';
@@ -266,6 +266,10 @@ onMounted(() => {
   if (!event.value) {
     goBack();
   }
+});
+
+onDeactivated(() => {
+  deleteConfirmVisible.value = false;
 });
 </script>
 

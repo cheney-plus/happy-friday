@@ -124,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, nextTick, onMounted, onUnmounted, onDeactivated } from 'vue';
 import { useRouter } from 'vue-router';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -307,6 +307,11 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside, true);
+});
+
+onDeactivated(() => {
+  isOpen.value = false;
+  showRenameModal.value = false;
 });
 
 defineExpose({ loadSessions });
