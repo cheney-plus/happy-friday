@@ -54,12 +54,21 @@ pub fn get_session_messages(db: State<'_, DbState>, session_id: String) -> AppRe
 
 #[command]
 pub fn update_session_title(
+    app: AppHandle,
     db: State<'_, DbState>,
     session_id: String,
     title: String,
 ) -> AppResult<()> {
     let conn = db.0.lock().map_err(|e| crate::error::AppError::Database(e.to_string()))?;
-    db::update_session_title(&conn, &session_id, &title)
+    db::update_session_title(&conn, &session_id, &title)?;
+    app.emit(
+        SESSION_TITLE_UPDATED,
+        crate::types::SessionTitlePayload {
+            session_id: session_id.clone(),
+            title,
+        },
+    ).unwrap_or(());
+    Ok(())
 }
 
 #[command]

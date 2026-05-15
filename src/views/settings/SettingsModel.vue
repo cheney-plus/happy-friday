@@ -439,7 +439,7 @@ const handleSave = () => {
 }
 
 .back-btn:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--bg-hover);
 }
 
 .back-btn svg {
@@ -476,7 +476,7 @@ const handleSave = () => {
 }
 
 .group-content {
-  background-color: #f7f6f3;
+  background-color: var(--bg-secondary);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -506,7 +506,7 @@ const handleSave = () => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background-color: #eeeeee;
+  background-color: var(--bg-secondary);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s;
@@ -514,7 +514,7 @@ const handleSave = () => {
 }
 
 .model-select-trigger:hover {
-  background-color: #e0e0e0;
+  background-color: var(--bg-hover);
 }
 
 .selected-model-info {
@@ -548,7 +548,8 @@ const handleSave = () => {
 }
 
 .model-dropdown-menu {
-  background-color: white;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
   max-height: 300px;
@@ -579,11 +580,11 @@ const handleSave = () => {
 }
 
 .model-dropdown-item:hover {
-  background-color: #f7f6f3;
+  background-color: var(--bg-hover);
 }
 
 .model-dropdown-item.active {
-  background-color: #ecfdf5;
+  background-color: var(--accent-light);
 }
 
 .model-item-content {
@@ -654,7 +655,7 @@ const handleSave = () => {
 }
 
 .custom-models-container {
-  background-color: #f7f6f3;
+  background-color: var(--bg-secondary);
   border-radius: 10px;
   padding: 8px;
 }
@@ -703,7 +704,7 @@ const handleSave = () => {
 }
 
 .modal-container {
-  background-color: white;
+  background-color: var(--bg-primary);
   border-radius: 12px;
   width: 90%;
   max-width: 480px;
@@ -727,7 +728,7 @@ const handleSave = () => {
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px 16px;
-  border-bottom: 1px solid #f0efe9;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .modal-title {
@@ -752,7 +753,7 @@ const handleSave = () => {
 
 .close-btn:hover {
   color: var(--text-primary);
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--bg-hover);
 }
 
 .close-btn svg {
@@ -790,11 +791,11 @@ const handleSave = () => {
 .select-trigger {
   width: 100%;
   padding: 10px 36px 10px 14px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
   color: var(--text-primary);
-  background-color: white;
+  background-color: var(--bg-primary);
   cursor: pointer;
   outline: none;
   transition: border-color 0.15s;
@@ -845,8 +846,8 @@ const handleSave = () => {
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background-color: white;
-  border: 1px solid #e5e5e5;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 100;
@@ -878,7 +879,7 @@ const handleSave = () => {
 }
 
 .dropdown-item:hover {
-  background-color: #f7f6f3;
+  background-color: var(--bg-hover);
 }
 
 .input-wrapper {
@@ -890,11 +891,11 @@ const handleSave = () => {
 .form-input {
   width: 100%;
   padding: 10px 42px 10px 14px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
   color: var(--text-primary);
-  background-color: white;
+  background-color: var(--bg-primary);
   outline: none;
   transition: border-color 0.15s;
   font-family: inherit;
@@ -946,8 +947,8 @@ const handleSave = () => {
 }
 
 .save-btn {
-  background-color: #d4d4d4;
-  color: white;
+  background-color: var(--text-tertiary);
+  color: var(--bg-primary);
   border: none;
   padding: 8px 28px;
   border-radius: 8px;
@@ -960,6 +961,7 @@ const handleSave = () => {
 
 .save-btn:not(:disabled) {
   background-color: var(--text-primary);
+  color: var(--bg-primary);
 }
 
 .save-btn:not(:disabled):hover {
@@ -971,7 +973,7 @@ const handleSave = () => {
 }
 
 .delete-confirm-dialog {
-  background-color: white;
+  background-color: var(--bg-primary);
   border-radius: 12px;
   width: 90%;
   max-width: 360px;
@@ -1007,7 +1009,7 @@ const handleSave = () => {
   justify-content: flex-end;
   gap: 10px;
   padding: 16px 20px;
-  border-top: 1px solid #f0efe9;
+  border-top: 1px solid var(--border-color);
 }
 
 .cancel-btn {
@@ -1024,7 +1026,7 @@ const handleSave = () => {
 }
 
 .cancel-btn:hover {
-  background-color: #f5f5f5;
+  background-color: var(--bg-hover);
 }
 
 .confirm-delete-btn {
@@ -1042,5 +1044,21 @@ const handleSave = () => {
 
 .confirm-delete-btn:hover {
   opacity: 0.9;
+}
+
+[data-theme='dark'] .model-dropdown-menu {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .modal-container {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .dropdown-menu {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .delete-confirm-dialog {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 }
 </style>

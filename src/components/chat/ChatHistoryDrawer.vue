@@ -100,26 +100,27 @@
           </div>
         </Teleport>
 
-        <Teleport to="body">
-          <div v-if="showRenameModal" class="rename-modal-overlay" @click.self="showRenameModal = false">
-            <div class="rename-modal">
-              <div class="rename-modal-title">重命名对话</div>
-              <input
-                v-model="renameValue"
-                class="rename-input"
-                placeholder="输入新名称"
-                @keydown.enter="confirmRename"
-                ref="renameInputRef"
-              />
-              <div class="rename-modal-actions">
-                <button class="rename-cancel-btn" @click="showRenameModal = false">取消</button>
-                <button class="rename-confirm-btn" @click="confirmRename">确认</button>
-              </div>
-            </div>
-          </div>
-        </Teleport>
       </div>
     </Transition>
+
+    <Teleport to="body">
+      <div v-if="showRenameModal" class="rename-modal-overlay" @click.self="showRenameModal = false">
+        <div class="rename-modal">
+          <div class="rename-modal-title">重命名对话</div>
+          <input
+            v-model="renameValue"
+            class="rename-input"
+            placeholder="输入新名称"
+            @keydown.enter="confirmRename"
+            ref="renameInputRef"
+          />
+          <div class="rename-modal-actions">
+            <button class="rename-cancel-btn" @click="showRenameModal = false">取消</button>
+            <button class="rename-confirm-btn" @click="confirmRename">确认</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -148,6 +149,7 @@ const menuStyle = ref<Record<string, string>>({});
 const showRenameModal = ref(false);
 const renameValue = ref('');
 const renameInputRef = ref<HTMLInputElement | null>(null);
+const renamingSessionId = ref<string | null>(null);
 
 const toggleDrawer = () => {
   isOpen.value = !isOpen.value;
@@ -246,6 +248,7 @@ const handleRename = () => {
   if (!activeMenuSessionId.value) return;
   const session = sessions.value.find(s => s.id === activeMenuSessionId.value);
   renameValue.value = session?.title || '';
+  renamingSessionId.value = activeMenuSessionId.value;
   showRenameModal.value = true;
   closeMenu();
   nextTick(() => {
@@ -255,7 +258,7 @@ const handleRename = () => {
 };
 
 const confirmRename = async () => {
-  const sessionId = activeMenuSessionId.value;
+  const sessionId = renamingSessionId.value;
   const newTitle = renameValue.value.trim();
   if (!sessionId || !newTitle) return;
 
@@ -270,7 +273,7 @@ const confirmRename = async () => {
   }
 
   showRenameModal.value = false;
-  activeMenuSessionId.value = null;
+  renamingSessionId.value = null;
 };
 
 const handleSaveAsNote = () => {
@@ -286,16 +289,16 @@ const handleLearn = () => {
 const handleClickOutside = (e: MouseEvent) => {
   if (showRenameModal.value) return;
 
+  const target = e.target as HTMLElement;
+
   if (activeMenuSessionId.value) {
-    const target = e.target as HTMLElement;
     if (!target.closest('.session-menu') && !target.closest('.session-menu-btn')) {
       closeMenu();
     }
   }
 
   if (isOpen.value) {
-    const target = e.target as HTMLElement;
-    if (!target.closest('.history-drawer') && !target.closest('.drawer-toggle-btn')) {
+    if (!target.closest('.history-drawer') && !target.closest('.drawer-toggle-btn') && !target.closest('.session-menu-overlay')) {
       isOpen.value = false;
     }
   }

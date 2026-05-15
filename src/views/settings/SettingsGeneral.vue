@@ -298,7 +298,7 @@ const goToModelSettings = () => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 20px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  border-bottom: 1px solid var(--border-color);
   min-height: 52px;
 }
 
@@ -427,7 +427,7 @@ const goToModelSettings = () => {
 
 .font-size-option.active {
   background-color: var(--text-primary);
-  color: #ffffff;
+  color: var(--bg-primary);
   font-weight: 500;
 }
 
@@ -499,7 +499,7 @@ const goToModelSettings = () => {
 
 .action-btn {
   background-color: var(--text-primary);
-  color: #ffffff;
+  color: var(--bg-primary);
   border: none;
   padding: 5px 14px;
   border-radius: 6px;
@@ -546,7 +546,7 @@ const goToModelSettings = () => {
 }
 
 .text-btn:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--bg-hover);
 }
 
 .footer-links {
@@ -572,5 +572,9 @@ const goToModelSettings = () => {
 .footer-divider {
   font-size: 13px;
   color: var(--text-tertiary);
+}
+
+[data-theme='dark'] .theme-dropdown-menu {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
 }
 </style>
