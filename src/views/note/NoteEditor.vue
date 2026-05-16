@@ -46,11 +46,11 @@
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
         <div v-if="showInsertMenu" class="dropdown-menu insert-menu">
-          <div class="menu-item has-submenu" @mouseenter="openTablePicker" @mouseleave="showTableSubmenu = false">
+          <div class="menu-item has-submenu" @mouseenter="openTablePicker" @mouseleave="delayHideTableSubmenu">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
             表格
             <svg class="submenu-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            <div v-if="showTableSubmenu" class="submenu table-submenu table-picker">
+            <div v-if="showTableSubmenu" class="submenu table-submenu table-picker" @mouseenter="cancelTableSubmenuDelay" @mouseleave="delayHideTableSubmenu">
               <div class="table-picker-info">{{ tableRows }} × {{ tableCols }}</div>
               <div class="table-picker-grid">
                 <div v-for="row in 10" :key="'row-' + row" class="table-picker-row">
@@ -209,6 +209,51 @@
         </button>
         <span class="tooltip">右对齐</span>
       </div>
+
+      <!-- 右侧功能按钮组 -->
+      <div class="toolbar-right-group">
+        <div class="tooltip-wrapper">
+          <button class="toolbar-btn" @click="handleAddContent">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+          </button>
+          <span class="tooltip">添加</span>
+        </div>
+
+        <div class="dropdown-wrapper more-menu-wrapper" tabindex="-1" @blur="closeMoreMenu">
+          <button class="toolbar-btn dropdown-toggle" @click="toggleMoreMenu" :class="{ active: showMoreMenu }">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg>
+          </button>
+          <div v-if="showMoreMenu" class="dropdown-menu more-menu">
+            <div class="menu-item has-submenu" @mouseenter="showShareSubmenu = true; cancelShareSubmenuDelay(); checkShareSubmenuPosition($event)" @mouseleave="delayHideShareSubmenu">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+              分享
+              <svg class="submenu-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              <div v-if="showShareSubmenu" class="submenu share-submenu" :class="{ 'align-left': shareSubmenuAlignLeft }" @mouseenter="cancelShareSubmenuDelay" @mouseleave="delayHideShareSubmenu">
+                <div class="menu-item" @click="shareLink">复制链接</div>
+                <div class="menu-item" @click="shareToWeChat">分享到微信</div>
+                <div class="menu-item" @click="shareToQQ">分享到 QQ</div>
+              </div>
+            </div>
+            <div class="menu-item" @click="exportPDF">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              导出 PDF
+            </div>
+            <div class="menu-item" @click="viewHistory">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              版本历史记录
+            </div>
+            <div class="menu-item" @click="addShortcut">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
+              添加快捷访问
+            </div>
+          </div>
+        </div>
+
+        <button class="toolbar-btn ai-write-btn" @click="openAIWrite">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+          AI 帮写
+        </button>
+      </div>
     </div>
 
     <EditorContent :editor="editor" class="editor-content" />
@@ -326,6 +371,9 @@ const showHighlightMenu = ref(false);
 const showTextColorMenu = ref(false);
 const showHeadingMenu = ref(false);
 const showTableSubmenu = ref(false);
+const showMoreMenu = ref(false);
+const showShareSubmenu = ref(false);
+const shareSubmenuAlignLeft = ref(false);
 const tableRows = ref(0);
 const tableCols = ref(0);
 
@@ -338,6 +386,21 @@ const openTablePicker = () => {
   showTableSubmenu.value = true;
   tableRows.value = 0;
   tableCols.value = 0;
+};
+
+let tableSubmenuTimer: ReturnType<typeof setTimeout> | null = null;
+
+const delayHideTableSubmenu = () => {
+  tableSubmenuTimer = setTimeout(() => {
+    showTableSubmenu.value = false;
+  }, 150);
+};
+
+const cancelTableSubmenuDelay = () => {
+  if (tableSubmenuTimer) {
+    clearTimeout(tableSubmenuTimer);
+    tableSubmenuTimer = null;
+  }
 };
 
 // 链接对话框相关
@@ -426,6 +489,95 @@ const confirmImage = () => {
     .run();
 
   closeImageDialog();
+};
+
+let shareSubmenuTimer: ReturnType<typeof setTimeout> | null = null;
+
+const delayHideShareSubmenu = () => {
+  shareSubmenuTimer = setTimeout(() => {
+    showShareSubmenu.value = false;
+  }, 150);
+};
+
+const cancelShareSubmenuDelay = () => {
+  if (shareSubmenuTimer) {
+    clearTimeout(shareSubmenuTimer);
+    shareSubmenuTimer = null;
+  }
+};
+
+const checkShareSubmenuPosition = (event: MouseEvent) => {
+  const target = event.currentTarget as HTMLElement;
+  const rect = target.getBoundingClientRect();
+  const windowWidth = window.innerWidth;
+  const submenuWidth = 140;
+  
+  if (rect.right + submenuWidth + 12 > windowWidth) {
+    shareSubmenuAlignLeft.value = true;
+  } else {
+    shareSubmenuAlignLeft.value = false;
+  }
+};
+
+// 更多菜单相关
+const toggleMoreMenu = (event: MouseEvent) => {
+  showMoreMenu.value = !showMoreMenu.value;
+  if (!showMoreMenu.value) {
+    showShareSubmenu.value = false;
+  } else {
+    const target = event.currentTarget as HTMLElement;
+    const parent = target.parentElement as HTMLElement;
+    parent.focus();
+  }
+};
+
+const closeMoreMenu = () => {
+  showMoreMenu.value = false;
+  showShareSubmenu.value = false;
+};
+
+const handleAddContent = () => {
+  editor.value?.chain().focus().run();
+};
+
+const shareLink = () => {
+  showMoreMenu.value = false;
+  showShareSubmenu.value = false;
+  const url = window.location.href;
+  navigator.clipboard.writeText(url).then(() => {
+    alert('链接已复制到剪贴板');
+  });
+};
+
+const shareToWeChat = () => {
+  alert('分享到微信功能开发中...');
+  showMoreMenu.value = false;
+  showShareSubmenu.value = false;
+};
+
+const shareToQQ = () => {
+  alert('分享到 QQ 功能开发中...');
+  showMoreMenu.value = false;
+  showShareSubmenu.value = false;
+};
+
+const exportPDF = () => {
+  alert('导出 PDF 功能开发中...');
+  showMoreMenu.value = false;
+};
+
+const viewHistory = () => {
+  alert('版本历史记录功能开发中...');
+  showMoreMenu.value = false;
+};
+
+const addShortcut = () => {
+  alert('添加快捷访问功能开发中...');
+  showMoreMenu.value = false;
+};
+
+const openAIWrite = () => {
+  alert('AI 帮写功能开发中...');
 };
 
 const highlightColorPalette = [
@@ -714,26 +866,28 @@ const handleClickOutside = (event: Event) => {
 
 .dropdown-menu {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   left: 0;
-  background-color: var(--bg-primary);
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 5px 0;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 6px 0;
   min-width: 180px;
   z-index: 1000;
-  animation: fadeIn 0.1s ease-out;
+  animation: menuFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes fadeIn {
+@keyframes menuFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-3px);
+    transform: translateY(-4px) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -744,55 +898,76 @@ const handleClickOutside = (event: Event) => {
 .menu-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  font-size: 13px;
-  color: #333;
+  gap: 12px;
+  padding: 11px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
   cursor: pointer;
-  transition: background-color 0.1s;
+  transition: all 0.15s ease;
   position: relative;
+  letter-spacing: 0.01em;
 }
 
 .menu-item:hover:not(.disabled) {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-.menu-item.active {
-  background-color: rgba(59, 130, 246, 0.08);
+  background-color: rgba(59, 130, 246, 0.06);
   color: #2563eb;
 }
 
+.menu-item:hover:not(.disabled) svg {
+  color: #2563eb;
+}
+
+.menu-item.active {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+}
+
 .menu-item.disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
 .menu-item svg {
   flex-shrink: 0;
-  color: #666;
+  color: #374151;
+  transition: color 0.15s ease;
 }
 
 .menu-item.has-submenu {
-  padding-right: 32px;
+  padding-right: 36px;
 }
 
 .submenu-arrow {
   position: absolute;
-  right: 10px;
-  color: #666;
+  right: 12px;
+  color: #9ca3af;
+  transition: transform 0.15s ease;
+}
+
+.menu-item.has-submenu:hover .submenu-arrow {
+  color: #2563eb;
+  transform: translateX(2px);
 }
 
 .submenu {
   position: absolute;
-  left: calc(100% + 4px);
-  top: 0;
-  background-color: var(--bg-primary);
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 5px 0;
-  min-width: 160px;
+  left: calc(100% + 6px);
+  top: -6px;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 6px 0;
+  width: max-content;
   z-index: 1001;
+}
+
+.submenu.align-left {
+  left: auto;
+  right: calc(100% + 6px);
 }
 
 .table-picker {
@@ -1071,13 +1246,20 @@ const handleClickOutside = (event: Event) => {
 
 :deep(.prose-editor ul[data-type="taskList"] li) {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
+}
+
+:deep(.prose-editor ul[data-type="taskList"] li > label) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 1.5em;
 }
 
 :deep(.prose-editor ul[data-type="taskList"] li > label input[type="checkbox"]) {
-  margin-top: 4px;
+  margin-top: 0;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 :deep(.prose-editor span[data-color]) {
@@ -1234,5 +1416,40 @@ const handleClickOutside = (event: Event) => {
 
 .btn-danger:hover {
   background-color: #dc2626;
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+.toolbar-right-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.more-menu {
+  right: 0;
+  left: auto;
+  min-width: 160px;
+}
+
+.share-submenu {
+  left: calc(100% + 6px);
+  right: auto;
+}
+
+.ai-write-btn {
+  background-color: #1f2937;
+  color: #fff !important;
+  gap: 6px;
+  padding: 0 14px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.ai-write-btn:hover:not(:disabled) {
+  background-color: #374151;
 }
 </style>
