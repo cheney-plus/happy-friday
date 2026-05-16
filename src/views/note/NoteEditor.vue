@@ -39,14 +39,21 @@
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
         <div v-if="showInsertMenu" class="dropdown-menu insert-menu">
-          <div class="menu-item has-submenu" @mouseenter="showTableSubmenu = true" @mouseleave="showTableSubmenu = false">
+          <div class="menu-item has-submenu" @mouseenter="openTablePicker" @mouseleave="showTableSubmenu = false">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
             表格
             <svg class="submenu-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            <div v-if="showTableSubmenu" class="submenu table-submenu">
-              <div class="menu-item" @click="insertTable(3, 3)">插入表格 (3×3)</div>
-              <div class="menu-item" @click="insertTable(4, 4)">插入表格 (4×4)</div>
-              <div class="menu-item" @click="insertTable(5, 5)">插入表格 (5×5)</div>
+            <div v-if="showTableSubmenu" class="submenu table-submenu table-picker">
+              <div class="table-picker-info">{{ tableRows }} × {{ tableCols }}</div>
+              <div class="table-picker-grid">
+                <div v-for="row in 10" :key="'row-' + row" class="table-picker-row">
+                  <div v-for="col in 10" :key="'cell-' + row + '-' + col"
+                       class="table-picker-cell"
+                       :class="{ active: col <= tableCols && row <= tableRows }"
+                       @mouseenter="selectTableCell(row, col)"
+                       @click="insertTable(tableRows, tableCols)"></div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="menu-item" @click="addLink">
@@ -245,6 +252,19 @@ const showHighlightMenu = ref(false);
 const showTextColorMenu = ref(false);
 const showHeadingMenu = ref(false);
 const showTableSubmenu = ref(false);
+const tableRows = ref(0);
+const tableCols = ref(0);
+
+const selectTableCell = (row: number, col: number) => {
+  tableRows.value = row;
+  tableCols.value = col;
+};
+
+const openTablePicker = () => {
+  showTableSubmenu.value = true;
+  tableRows.value = 0;
+  tableCols.value = 0;
+};
 
 const highlightColorPalette = [
   '#ffffff', '#fef3c7', '#fef9c3', '#ecfccb', '#d1fae5', '#ccfbf1', '#cffafe', '#dbeafe', '#ede9fe', '#fce7f3',
@@ -617,6 +637,44 @@ const handleClickOutside = (event: Event) => {
   padding: 5px 0;
   min-width: 160px;
   z-index: 1001;
+}
+
+.table-picker {
+  padding: 10px !important;
+  min-width: auto !important;
+}
+
+.table-picker-info {
+  text-align: center;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.table-picker-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.table-picker-row {
+  display: flex;
+  gap: 2px;
+}
+
+.table-picker-cell {
+  width: 18px;
+  height: 18px;
+  border: 1px solid #d1d5db;
+  background-color: #fff;
+  cursor: pointer;
+  transition: all 0.08s ease;
+}
+
+.table-picker-cell:hover,
+.table-picker-cell.active {
+  background-color: #bfdbfe;
+  border-color: #93c5fd;
 }
 
 .color-picker-grid {
