@@ -29,6 +29,13 @@
         <span class="tooltip">清除格式</span>
       </div>
 
+      <div class="tooltip-wrapper">
+        <button class="toolbar-btn" :class="{ active: editor.isActive('link') }" @click="addLink" :disabled="!hasSelection">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        </button>
+        <span class="tooltip">链接</span>
+      </div>
+
       <div class="toolbar-divider"></div>
 
       <!-- 第二组：插入下拉菜单 -->
@@ -55,10 +62,6 @@
                 </div>
               </div>
             </div>
-          </div>
-          <div class="menu-item" @click="addLink">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-            链接
           </div>
           <div class="menu-item" @click="addImage">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
@@ -209,6 +212,71 @@
     </div>
 
     <EditorContent :editor="editor" class="editor-content" />
+
+    <!-- 链接对话框 -->
+    <div v-if="showLinkDialog" class="dialog-overlay" @click.self="closeLinkDialog">
+      <div class="dialog">
+        <div class="dialog-header">
+          <h3>{{ isEditingLink ? '编辑链接' : '插入链接' }}</h3>
+          <button class="dialog-close" @click="closeLinkDialog">×</button>
+        </div>
+        <div class="dialog-body">
+          <div class="form-group">
+            <label>链接地址</label>
+            <input
+              ref="linkUrlInput"
+              v-model="linkUrl"
+              type="url"
+              placeholder="https://example.com"
+              @keyup.enter="confirmLink"
+              class="form-input"
+            />
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn btn-secondary" @click="closeLinkDialog">取消</button>
+          <button v-if="isEditingLink && editor?.isActive('link')" class="btn btn-danger" @click="removeLink">删除链接</button>
+          <button class="btn btn-primary" @click="confirmLink" :disabled="!linkUrl">{{ isEditingLink ? '更新' : '插入' }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 图片对话框 -->
+    <div v-if="showImageDialog" class="dialog-overlay" @click.self="closeImageDialog">
+      <div class="dialog">
+        <div class="dialog-header">
+          <h3>插入图片</h3>
+          <button class="dialog-close" @click="closeImageDialog">×</button>
+        </div>
+        <div class="dialog-body">
+          <div class="form-group">
+            <label>图片地址</label>
+            <input
+              ref="imageUrlInput"
+              v-model="imageUrl"
+              type="url"
+              placeholder="https://example.com/image.jpg"
+              @keyup.enter="confirmImage"
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
+            <label>替代文本（可选）</label>
+            <input
+              v-model="imageAlt"
+              type="text"
+              placeholder="图片描述"
+              @keyup.enter="confirmImage"
+              class="form-input"
+            />
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn btn-secondary" @click="closeImageDialog">取消</button>
+          <button class="btn btn-primary" @click="confirmImage" :disabled="!imageUrl">插入</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -233,6 +301,12 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import { TextStyle } from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { all, createLowlight } from 'lowlight';
+import { VueNodeViewRenderer } from '@tiptap/vue-3';
+import CodeBlockComponent from './CodeBlockComponent.vue';
+
+const lowlight = createLowlight(all);
 
 const props = withDefaults(defineProps<{
   placeholder?: string;
@@ -266,6 +340,94 @@ const openTablePicker = () => {
   tableCols.value = 0;
 };
 
+// 链接对话框相关
+const showLinkDialog = ref(false);
+const isEditingLink = ref(false);
+const linkUrl = ref('');
+const linkUrlInput = ref<HTMLInputElement | null>(null);
+
+const hasSelection = computed(() => {
+  if (!editor.value) return false;
+  const { from, to } = editor.value.state.selection;
+  return from !== to;
+});
+
+const addLink = () => {
+  if (!hasSelection.value) return;
+
+  isEditingLink.value = editor.value?.isActive('link') || false;
+
+  if (isEditingLink.value && editor.value) {
+    const { href } = editor.value.getAttributes('link');
+    linkUrl.value = href || '';
+  } else {
+    linkUrl.value = '';
+  }
+
+  showLinkDialog.value = true;
+  setTimeout(() => {
+    linkUrlInput.value?.focus();
+    linkUrlInput.value?.select();
+  }, 100);
+};
+
+const closeLinkDialog = () => {
+  showLinkDialog.value = false;
+  isEditingLink.value = false;
+  linkUrl.value = '';
+};
+
+const confirmLink = () => {
+  if (!linkUrl.value.trim() || !editor.value) return;
+
+  if (isEditingLink.value) {
+    editor.value.chain().focus().extendMarkRange('link').setLink({ href: linkUrl.value }).run();
+  } else {
+    editor.value.chain().focus().setLink({ href: linkUrl.value }).run();
+  }
+
+  closeLinkDialog();
+};
+
+const removeLink = () => {
+  editor.value?.chain().focus().unsetLink().run();
+  closeLinkDialog();
+};
+
+// 图片对话框相关
+const showImageDialog = ref(false);
+const imageUrl = ref('');
+const imageAlt = ref('');
+const imageUrlInput = ref<HTMLInputElement | null>(null);
+
+const addImage = () => {
+  showInsertMenu.value = false;
+  imageUrl.value = '';
+  imageAlt.value = '';
+  showImageDialog.value = true;
+  setTimeout(() => {
+    imageUrlInput.value?.focus();
+  }, 100);
+};
+
+const closeImageDialog = () => {
+  showImageDialog.value = false;
+  imageUrl.value = '';
+  imageAlt.value = '';
+};
+
+const confirmImage = () => {
+  if (!imageUrl.value.trim()) return;
+
+  editor.value
+    ?.chain()
+    .focus()
+    .setImage({ src: imageUrl.value, alt: imageAlt.value })
+    .run();
+
+  closeImageDialog();
+};
+
 const highlightColorPalette = [
   '#ffffff', '#fef3c7', '#fef9c3', '#ecfccb', '#d1fae5', '#ccfbf1', '#cffafe', '#dbeafe', '#ede9fe', '#fce7f3',
   '#f3f4f6', '#fde68a', '#fef08a', '#bef264', '#86efac', '#5eead4', '#67e8f9', '#93c5fd', '#c4b5fd', '#fbcfe8',
@@ -289,6 +451,7 @@ const editor = useEditor({
       heading: {
         levels: [1, 2, 3],
       },
+      codeBlock: false,
     }),
     Underline,
     TextAlign.configure({
@@ -326,6 +489,11 @@ const editor = useEditor({
     }),
     TextStyle,
     Color,
+    CodeBlockLowlight.extend({
+      addNodeView() {
+        return VueNodeViewRenderer(CodeBlockComponent as any);
+      },
+    }).configure({ lowlight }),
   ],
   content: props.modelValue,
   editorProps: {
@@ -412,22 +580,6 @@ const setHeading = (level: number) => {
   showHeadingMenu.value = false;
 };
 
-const addLink = () => {
-  const url = prompt('请输入链接地址:');
-  if (url) {
-    editor.value?.chain().focus().setLink({ href: url }).run();
-  }
-  showInsertMenu.value = false;
-};
-
-const addImage = () => {
-  const url = prompt('请输入图片地址:');
-  if (url) {
-    editor.value?.chain().focus().setImage({ src: url }).run();
-  }
-  showInsertMenu.value = false;
-};
-
 const insertTable = (rows: number, cols: number) => {
   editor.value
     ?.chain()
@@ -462,6 +614,10 @@ const handleClickOutside = (event: Event) => {
   }
 };
 </script>
+
+<style>
+@import 'highlight.js/styles/atom-one-dark.css';
+</style>
 
 <style scoped>
 .editor-wrapper {
@@ -926,5 +1082,157 @@ const handleClickOutside = (event: Event) => {
 
 :deep(.prose-editor span[data-color]) {
   color: attr(data-color);
+}
+
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.dialog {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 480px;
+  overflow: hidden;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.dialog-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.dialog-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.dialog-close:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.dialog-body {
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input::placeholder {
+  color: #9ca3af;
+}
+
+.dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  background-color: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn {
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+
+.btn-primary {
+  background-color: #3b82f6;
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: #fff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.btn-secondary:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.btn-danger {
+  background-color: #ef4444;
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background-color: #dc2626;
 }
 </style>
