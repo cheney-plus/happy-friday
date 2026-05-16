@@ -1,17 +1,231 @@
 <template>
   <div class="editor-wrapper">
-    <textarea
-      ref="textareaRef"
-      class="note-textarea"
-      :value="modelValue"
-      :placeholder="placeholder"
-      @input="onInput"
-    ></textarea>
+    <div class="editor-toolbar" v-if="editor">
+      <!-- 第一组：撤销/重做、清除格式 -->
+      <div class="tooltip-wrapper">
+        <button class="toolbar-btn" @click="editor.chain().focus().undo().run()" :disabled="!editor.can().undo()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7v6h6"></path>
+            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+          </svg>
+        </button>
+        <span class="tooltip">撤销</span>
+      </div>
+
+      <div class="tooltip-wrapper">
+        <button class="toolbar-btn" @click="editor.chain().focus().redo().run()" :disabled="!editor.can().redo()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 7v6h-6"></path>
+            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path>
+          </svg>
+        </button>
+        <span class="tooltip">重做</span>
+      </div>
+
+      <div class="tooltip-wrapper">
+        <button class="toolbar-btn" @click="editor.chain().focus().clearNodes().unsetAllMarks().run()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path><path d="M22 21H7"></path><path d="m5 11 9 9"></path></svg>
+        </button>
+        <span class="tooltip">清除格式</span>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <!-- 第二组：插入下拉菜单 -->
+      <div class="dropdown-wrapper">
+        <button class="toolbar-btn dropdown-toggle" @click="toggleInsertMenu" :class="{ active: showInsertMenu }">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+          插入
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div v-if="showInsertMenu" class="dropdown-menu insert-menu">
+          <div class="menu-item has-submenu" @mouseenter="showTableSubmenu = true" @mouseleave="showTableSubmenu = false">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+            表格
+            <svg class="submenu-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            <div v-if="showTableSubmenu" class="submenu table-submenu">
+              <div class="menu-item" @click="insertTable(3, 3)">插入表格 (3×3)</div>
+              <div class="menu-item" @click="insertTable(4, 4)">插入表格 (4×4)</div>
+              <div class="menu-item" @click="insertTable(5, 5)">插入表格 (5×5)</div>
+            </div>
+          </div>
+          <div class="menu-item" @click="addLink">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+            链接
+          </div>
+          <div class="menu-item" @click="addImage">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            图片
+          </div>
+          <div class="menu-item" @click="editor.chain().focus().toggleCodeBlock().run()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+            代码块
+          </div>
+          <div class="menu-item" @click="editor.chain().focus().setHorizontalRule().run()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line></svg>
+            分割线
+          </div>
+          <div class="menu-item" @click="editor.chain().focus().toggleBlockquote().run()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z"></path><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 1 1 1 1z"></path></svg>
+            引用
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <!-- 第三组：文本格式 -->
+      <div class="tooltip-wrapper">
+        <button class="toolbar-btn" :class="{ active: editor.isActive('bold') }" @click="editor.chain().focus().toggleBold().run()">
+          <span style="font-weight: 700; font-size: 14px;">B</span>
+        </button>
+        <span class="tooltip">粗体</span>
+      </div>
+      <div class="tooltip-wrapper">
+        <button class="toolbar-btn" :class="{ active: editor.isActive('italic') }" @click="editor.chain().focus().toggleItalic().run()">
+          <span style="font-style: italic; font-size: 14px;">I</span>
+        </button>
+        <span class="tooltip">斜体</span>
+      </div>
+      <div class="tooltip-wrapper">
+        <button class="toolbar-btn" :class="{ active: editor.isActive('underline') }" @click="editor.chain().focus().toggleUnderline().run()">
+          <span style="text-decoration: underline; font-size: 14px;">U</span>
+        </button>
+        <span class="tooltip">下划线</span>
+      </div>
+      <div class="tooltip-wrapper">
+        <button class="toolbar-btn" :class="{ active: editor.isActive('strike') }" @click="editor.chain().focus().toggleStrike().run()">
+          <span style="text-decoration: line-through; font-size: 14px;">S</span>
+        </button>
+        <span class="tooltip">删除线</span>
+      </div>
+
+      <div class="dropdown-wrapper">
+        <button class="toolbar-btn dropdown-toggle" :class="{ active: editor.isActive('highlight') }" @click="toggleHighlightMenu">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div v-if="showHighlightMenu" class="dropdown-menu highlight-menu">
+          <div class="text-color-header">背景颜色</div>
+          <button class="default-color-btn" @click="setHighlight('transparent')">无背景</button>
+          <div class="color-picker-grid highlight-grid">
+            <div class="color-option" v-for="color in highlightColorPalette" :key="color"
+                 :style="{ backgroundColor: color, border: color === '#ffffff' ? '1px solid #e5e7eb' : 'none' }"
+                 @click="setHighlight(color)"
+                 :title="color === 'transparent' ? '取消高亮' : color"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dropdown-wrapper">
+        <button class="toolbar-btn dropdown-toggle" @click="toggleTextColorMenu">
+          <span style="font-size: 14px; text-decoration: underline;">A</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div v-if="showTextColorMenu" class="dropdown-menu text-color-menu">
+          <div class="text-color-header">文字颜色</div>
+          <button class="default-color-btn" @click="setTextColor('inherit')">默认颜色</button>
+          <div class="color-picker-grid text-color-grid">
+            <div class="color-option" v-for="color in textColorPalette" :key="color"
+                 :style="{ backgroundColor: color, border: color === '#ffffff' ? '1px solid #e5e7eb' : 'none' }"
+                 @click="setTextColor(color)"
+                 :title="color"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <!-- 第四组：标题下拉菜单 -->
+      <div class="dropdown-wrapper">
+        <button class="toolbar-btn dropdown-toggle heading-toggle" @click="toggleHeadingMenu" :class="{ active: showHeadingMenu || isHeadingActive }">
+          {{ currentHeadingLabel }}
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div v-if="showHeadingMenu" class="dropdown-menu heading-menu">
+          <div class="menu-item" :class="{ active: !isHeadingActive }" @click="setHeading(0)">正文</div>
+          <div class="menu-item heading-preview" :class="{ active: editor.isActive('heading', { level: 1 }) }" @click="setHeading(1)">
+            <span style="font-size: 20px; font-weight: 600;">标题 1</span>
+          </div>
+          <div class="menu-item heading-preview" :class="{ active: editor.isActive('heading', { level: 2 }) }" @click="setHeading(2)">
+            <span style="font-size: 17px; font-weight: 600;">标题 2</span>
+          </div>
+          <div class="menu-item heading-preview" :class="{ active: editor.isActive('heading', { level: 3 }) }" @click="setHeading(3)">
+            <span style="font-size: 15px; font-weight: 600;">标题 3</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <!-- 第五组：列表 -->
+      <div class="tooltip-wrapper">
+        <button class="toolbar-btn" :class="{ active: editor.isActive('bulletList') }" @click="editor.chain().focus().toggleBulletList().run()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+        </button>
+        <span class="tooltip">无序列表</span>
+      </div>
+      <div class="tooltip-wrapper">
+        <button class="toolbar-btn" :class="{ active: editor.isActive('orderedList') }" @click="editor.chain().focus().toggleOrderedList().run()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="10" y1="6" x2="21" y2="6"></line><line x1="10" y1="12" x2="21" y2="12"></line><line x1="10" y1="18" x2="21" y2="18"></line><path d="M4 6h1v4"></path><path d="M4 10h2"></path><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"></path></svg>
+        </button>
+        <span class="tooltip">有序列表</span>
+      </div>
+      <div class="tooltip-wrapper">
+        <button class="toolbar-btn" :class="{ active: editor.isActive('taskList') }" @click="editor.chain().focus().toggleTaskList().run()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        </button>
+        <span class="tooltip">任务列表</span>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <!-- 第六组：对齐方式 -->
+      <div class="tooltip-wrapper">
+        <button class="toolbar-btn" :class="{ active: editor.isActive({ textAlign: 'left' }) }" @click="editor.chain().focus().setTextAlign('left').run()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="6" x2="3" y2="6"></line><line x1="15" y1="12" x2="3" y2="12"></line><line x1="17" y1="18" x2="3" y2="18"></line></svg>
+        </button>
+        <span class="tooltip">左对齐</span>
+      </div>
+      <div class="tooltip-wrapper">
+        <button class="toolbar-btn" :class="{ active: editor.isActive({ textAlign: 'center' }) }" @click="editor.chain().focus().setTextAlign('center').run()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="6" x2="3" y2="6"></line><line x1="17" y1="12" x2="7" y2="12"></line><line x1="19" y1="18" x2="5" y2="18"></line></svg>
+        </button>
+        <span class="tooltip">居中对齐</span>
+      </div>
+      <div class="tooltip-wrapper">
+        <button class="toolbar-btn" :class="{ active: editor.isActive({ textAlign: 'right' }) }" @click="editor.chain().focus().setTextAlign('right').run()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="12" x2="9" y2="12"></line><line x1="21" y1="18" x2="7" y2="18"></line></svg>
+        </button>
+        <span class="tooltip">右对齐</span>
+      </div>
+    </div>
+
+    <EditorContent :editor="editor" class="editor-content" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watch } from 'vue';
+import { ref, computed, watch, onBeforeUnmount, onMounted } from 'vue';
+import { useEditor, EditorContent } from '@tiptap/vue-3';
+import StarterKit from '@tiptap/starter-kit';
+import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
+import Highlight from '@tiptap/extension-highlight';
+import Link from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
+import Placeholder from '@tiptap/extension-placeholder';
+import Superscript from '@tiptap/extension-superscript';
+import Subscript from '@tiptap/extension-subscript';
+import Typography from '@tiptap/extension-typography';
+import { Table } from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import { TextStyle } from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
 
 const props = withDefaults(defineProps<{
   placeholder?: string;
@@ -26,53 +240,633 @@ const emit = defineEmits<{
   change: [value: string];
 }>();
 
-const textareaRef = ref<HTMLTextAreaElement | null>(null);
+const showInsertMenu = ref(false);
+const showHighlightMenu = ref(false);
+const showTextColorMenu = ref(false);
+const showHeadingMenu = ref(false);
+const showTableSubmenu = ref(false);
 
-const onInput = (e: Event) => {
-  const value = (e.target as HTMLTextAreaElement).value;
-  emit('update:modelValue', value);
-  emit('change', value);
+const highlightColorPalette = [
+  '#ffffff', '#fef3c7', '#fef9c3', '#ecfccb', '#d1fae5', '#ccfbf1', '#cffafe', '#dbeafe', '#ede9fe', '#fce7f3',
+  '#f3f4f6', '#fde68a', '#fef08a', '#bef264', '#86efac', '#5eead4', '#67e8f9', '#93c5fd', '#c4b5fd', '#fbcfe8',
+  '#f9fafb', '#fcd34d', '#facc15', '#a3e635', '#4ade80', '#2dd4bf', '#22d3ee', '#60a5fa', '#a78bfa', '#f472b6',
+  '#f3f4f6', '#fbbf24', '#eab308', '#84cc16', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899',
+  '#e5e7eb', '#f59e0b', '#d97706', '#65a30d', '#16a34a', '#0d9488', '#0891b2', '#2563eb', '#7c3aed', '#db2777'
+];
+
+const textColorPalette = [
+  '#ffffff', '#000000', '#3b82f6', '#22d3ee', '#22c55e', '#ef4444', '#eab308', '#a855f7', '#dc2626',
+  '#f3f4f6', '#9ca3af', '#93c5fd', '#a7f3d0', '#bbf7d0', '#fecaca', '#fef08a', '#ddd6fe', '#fce7f3',
+  '#f9fafb', '#6b7280', '#bfdbfe', '#99f6e4', '#86efac', '#fca5a5', '#fde047', '#c4b5fd', '#fbcfe8',
+  '#f3f4f6', '#4b5563', '#60a5fa', '#5eead4', '#4ade80', '#f87171', '#facc15', '#a78bfa', '#f472b6',
+  '#e5e7eb', '#374151', '#2563eb', '#2dd4bf', '#16a34a', '#dc2626', '#eab308', '#8b5cf6', '#ec4899',
+  '#1f2937', '#111827', '#1d4ed8', '#0891b2', '#15803d', '#b91c1c', '#ca8a04', '#7c3aed', '#db2777'
+];
+
+const editor = useEditor({
+  extensions: [
+    StarterKit.configure({
+      heading: {
+        levels: [1, 2, 3],
+      },
+    }),
+    Underline,
+    TextAlign.configure({
+      types: ['heading', 'paragraph'],
+    }),
+    Highlight.configure({
+      multicolor: true,
+    }),
+    Link.configure({
+      openOnClick: false,
+      HTMLAttributes: {
+        class: 'text-link',
+      },
+    }),
+    Image.configure({
+      HTMLAttributes: {
+        class: 'editor-image',
+      },
+    }),
+    Placeholder.configure({
+      placeholder: props.placeholder,
+    }),
+    Superscript,
+    Subscript,
+    Typography,
+    Table.configure({
+      resizable: true,
+    }),
+    TableRow,
+    TableCell,
+    TableHeader,
+    TaskList,
+    TaskItem.configure({
+      nested: true,
+    }),
+    TextStyle,
+    Color,
+  ],
+  content: props.modelValue,
+  editorProps: {
+    attributes: {
+      class: 'prose-editor',
+    },
+  },
+  onUpdate: ({ editor }) => {
+    const html = editor.getHTML();
+    emit('update:modelValue', html);
+    emit('change', html);
+  },
+});
+
+const currentHeadingLabel = computed(() => {
+  if (!editor.value) return '标题';
+  if (editor.value.isActive('heading', { level: 1 })) return '标题 1';
+  if (editor.value.isActive('heading', { level: 2 })) return '标题 2';
+  if (editor.value.isActive('heading', { level: 3 })) return '标题 3';
+  return '标题';
+});
+
+const isHeadingActive = computed(() => {
+  if (!editor.value) return false;
+  return editor.value.isActive('heading');
+});
+
+const toggleInsertMenu = () => {
+  showInsertMenu.value = !showInsertMenu.value;
+  showHighlightMenu.value = false;
+  showTextColorMenu.value = false;
+  showHeadingMenu.value = false;
 };
 
-const autoResize = () => {
-  const el = textareaRef.value;
-  if (!el) return;
-  el.style.height = 'auto';
-  el.style.height = el.scrollHeight + 'px';
+const toggleHighlightMenu = () => {
+  showHighlightMenu.value = !showHighlightMenu.value;
+  showInsertMenu.value = false;
+  showTextColorMenu.value = false;
+  showHeadingMenu.value = false;
 };
 
-watch(() => props.modelValue, () => {
-  nextTick(autoResize);
+const toggleTextColorMenu = () => {
+  showTextColorMenu.value = !showTextColorMenu.value;
+  showInsertMenu.value = false;
+  showHighlightMenu.value = false;
+  showHeadingMenu.value = false;
+};
+
+const toggleHeadingMenu = () => {
+  showHeadingMenu.value = !showHeadingMenu.value;
+  showInsertMenu.value = false;
+  showHighlightMenu.value = false;
+  showTextColorMenu.value = false;
+};
+
+const closeAllMenus = () => {
+  showInsertMenu.value = false;
+  showHighlightMenu.value = false;
+  showTextColorMenu.value = false;
+  showHeadingMenu.value = false;
+  showTableSubmenu.value = false;
+};
+
+const setHighlight = (color: string) => {
+  if (color === 'transparent') {
+    editor.value?.chain().focus().unsetHighlight().run();
+  } else {
+    editor.value?.chain().focus().toggleHighlight({ color }).run();
+  }
+  showHighlightMenu.value = false;
+};
+
+const setTextColor = (color: string) => {
+  editor.value?.chain().focus().setColor(color).run();
+  showTextColorMenu.value = false;
+};
+
+const setHeading = (level: number) => {
+  if (level === 0) {
+    editor.value?.chain().focus().setParagraph().run();
+  } else {
+    editor.value?.chain().focus().toggleHeading({ level: level as 1 | 2 | 3 }).run();
+  }
+  showHeadingMenu.value = false;
+};
+
+const addLink = () => {
+  const url = prompt('请输入链接地址:');
+  if (url) {
+    editor.value?.chain().focus().setLink({ href: url }).run();
+  }
+  showInsertMenu.value = false;
+};
+
+const addImage = () => {
+  const url = prompt('请输入图片地址:');
+  if (url) {
+    editor.value?.chain().focus().setImage({ src: url }).run();
+  }
+  showInsertMenu.value = false;
+};
+
+const insertTable = (rows: number, cols: number) => {
+  editor.value
+    ?.chain()
+    .focus()
+    .insertTable({ rows, cols, withHeaderRow: true })
+    .run();
+  showInsertMenu.value = false;
+  showTableSubmenu.value = false;
+};
+
+watch(() => props.modelValue, (newValue) => {
+  if (editor.value && newValue !== editor.value.getHTML()) {
+    editor.value.commands.setContent(newValue);
+  }
 });
 
 onMounted(() => {
-  nextTick(autoResize);
+  document.addEventListener('click', handleClickOutside);
 });
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside);
+  if (editor.value) {
+    editor.value.destroy();
+  }
+});
+
+const handleClickOutside = (event: Event) => {
+  const target = event.target as HTMLElement;
+  if (!target.closest('.dropdown-wrapper')) {
+    closeAllMenus();
+  }
+};
 </script>
 
 <style scoped>
 .editor-wrapper {
   flex: 1;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 0 32px 0 48px;
 }
 
-.note-textarea {
-  width: 100%;
-  min-height: 100%;
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0;
+  flex-wrap: wrap;
+}
+
+.toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 7px;
   border: none;
-  outline: none;
+  border-radius: 5px;
+  background-color: transparent;
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+
+.toolbar-btn:hover:not(:disabled):not(.disabled) {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #000;
+}
+
+.toolbar-btn.active {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+}
+
+.toolbar-btn:disabled,
+.toolbar-btn.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 18px;
+  background-color: #ddd;
+  margin: 0 5px;
+}
+
+.tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.tooltip-wrapper .tooltip {
+  position: absolute;
+  bottom: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease-in-out;
+  z-index: 1000;
+}
+
+.tooltip-wrapper:hover .tooltip {
+  opacity: 1;
+}
+
+.dropdown-wrapper {
+  position: relative;
+}
+
+.dropdown-toggle::after {
+  content: '';
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background-color: var(--bg-primary);
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 5px 0;
+  min-width: 180px;
+  z-index: 1000;
+  animation: fadeIn 0.1s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.insert-menu {
+  min-width: 140px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.1s;
+  position: relative;
+}
+
+.menu-item:hover:not(.disabled) {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.menu-item.active {
+  background-color: rgba(59, 130, 246, 0.08);
+  color: #2563eb;
+}
+
+.menu-item.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.menu-item svg {
+  flex-shrink: 0;
+  color: #666;
+}
+
+.menu-item.has-submenu {
+  padding-right: 32px;
+}
+
+.submenu-arrow {
+  position: absolute;
+  right: 10px;
+  color: #666;
+}
+
+.submenu {
+  position: absolute;
+  left: calc(100% + 4px);
+  top: 0;
+  background-color: var(--bg-primary);
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 5px 0;
+  min-width: 160px;
+  z-index: 1001;
+}
+
+.color-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 3px;
+  padding: 10px;
+}
+
+.color-option {
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.12s;
+}
+
+.color-option:hover {
+  transform: scale(1.15);
+  border-color: #999;
+}
+
+.heading-toggle {
+  min-width: 68px;
+  font-weight: 500;
+}
+
+.heading-preview {
+  padding: 7px 14px;
+}
+
+.highlight-menu,
+.text-color-menu {
+  min-width: 280px;
+  padding: 12px;
+}
+
+.text-color-header {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.default-color-btn {
+  width: 100%;
+  padding: 8px 16px;
+  margin-bottom: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background-color: #fff;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.default-color-btn:hover {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.text-color-grid {
+  grid-template-columns: repeat(9, 1fr);
+}
+
+.highlight-grid {
+  grid-template-columns: repeat(10, 1fr);
+}
+
+.editor-content {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+
+.editor-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.editor-content::-webkit-scrollbar-track {
   background: transparent;
+}
+
+.editor-content::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 3px;
+  transition: background-color 0.2s;
+}
+
+.editor-content::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af;
+}
+
+:deep(.prose-editor) {
+  outline: none;
+  min-height: 100%;
   color: var(--text-primary);
   font-size: 14px;
   line-height: 1.7;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  resize: none;
-  padding: 48px 0 24px;
-  box-sizing: border-box;
+  padding-top: 4px;
 }
 
-.note-textarea::placeholder {
+:deep(.prose-editor p.is-editor-empty:first-child::before) {
+  content: attr(data-placeholder);
+  float: left;
   color: var(--text-tertiary);
+  pointer-events: none;
+  height: 0;
+}
+
+:deep(.prose-editor h1),
+:deep(.prose-editor h2),
+:deep(.prose-editor h3) {
+  font-weight: 600;
+  margin: 0.8em 0 0.4em;
+  line-height: 1.3;
+}
+
+:deep(.prose-editor h1) {
+  font-size: 28px;
+}
+
+:deep(.prose-editor h2) {
+  font-size: 22px;
+}
+
+:deep(.prose-editor h3) {
+  font-size: 18px;
+}
+
+:deep(.prose-editor p) {
+  margin: 0.4em 0;
+}
+
+:deep(.prose-editor ul),
+:deep(.prose-editor ol) {
+  padding-left: 1.5em;
+  margin: 0.4em 0;
+}
+
+:deep(.prose-editor ul) {
+  list-style-type: disc;
+}
+
+:deep(.prose-editor ol) {
+  list-style-type: decimal;
+}
+
+:deep(.prose-editor li) {
+  margin: 0.2em 0;
+}
+
+:deep(.prose-editor blockquote) {
+  border-left: 3px solid var(--border-color);
+  padding-left: 1em;
+  margin: 0.8em 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+:deep(.prose-editor code) {
+  background-color: var(--bg-hover);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, monospace;
+  font-size: 0.9em;
+}
+
+:deep(.pre-editor pre) {
+  background-color: var(--bg-hover);
+  padding: 1em;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0.8em 0;
+}
+
+:deep(.pre-editor pre code) {
+  background: none;
+  padding: 0;
+  font-size: 0.9em;
+}
+
+:deep(.prose-editor a.text-link) {
+  color: #3b82f6;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+:deep(.prose-editor a.text-link:hover) {
+  color: #2563eb;
+}
+
+:deep(.prose-editor img.editor-image) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 0.8em 0;
+}
+
+:deep(.prose-editor mark) {
+  padding: 0.1em 0.2em;
+  border-radius: 2px;
+}
+
+:deep(.prose-editor hr) {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 1.5em 0;
+}
+
+:deep(.prose-editor table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.8em 0;
+  overflow: auto;
+}
+
+:deep(.prose-editor td),
+:deep(.prose-editor th) {
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  text-align: left;
+  min-width: 100px;
+}
+
+:deep(.prose-editor th) {
+  background-color: var(--bg-hover);
+  font-weight: 600;
+}
+
+:deep(.prose-editor ul[data-type="taskList"]) {
+  list-style: none;
+  padding-left: 0;
+}
+
+:deep(.prose-editor ul[data-type="taskList"] li) {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+:deep(.prose-editor ul[data-type="taskList"] li > label input[type="checkbox"]) {
+  margin-top: 4px;
+  cursor: pointer;
+}
+
+:deep(.prose-editor span[data-color]) {
+  color: attr(data-color);
 }
 </style>
