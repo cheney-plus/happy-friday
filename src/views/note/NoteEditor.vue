@@ -1,6 +1,7 @@
 <template>
   <div class="editor-wrapper">
     <div class="editor-toolbar" v-if="editor">
+      <div class="toolbar-left-group">
       <!-- 第一组：撤销/重做、清除格式 -->
       <div class="tooltip-wrapper">
         <button class="toolbar-btn" @click="editor.chain().focus().undo().run()" :disabled="!editor.can().undo()">
@@ -208,6 +209,7 @@
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="12" x2="9" y2="12"></line><line x1="21" y1="18" x2="7" y2="18"></line></svg>
         </button>
         <span class="tooltip">右对齐</span>
+      </div>
       </div>
 
       <!-- 右侧功能按钮组 -->
@@ -777,15 +779,14 @@ const handleClickOutside = (event: Event) => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 0 32px 0 48px;
+  padding: 0 8px 0 48px;
 }
 
 .editor-toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 2px;
   padding: 6px 0;
-  flex-wrap: wrap;
 }
 
 .toolbar-btn {
@@ -1422,11 +1423,20 @@ const handleClickOutside = (event: Event) => {
   flex: 1;
 }
 
+.toolbar-left-group {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  align-items: center;
+}
+
 .toolbar-right-group {
   display: flex;
   align-items: center;
   gap: 2px;
-  margin-left: auto;
+  flex-shrink: 0;
+  margin-left: 10px;
 }
 
 .more-menu {
