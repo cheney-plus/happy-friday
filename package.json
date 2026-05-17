@@ -17,6 +17,7 @@
     "@schedule-x/vue": "^4.1.0",
     "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-opener": "^2",
+    "@tiptap/extension-bubble-menu": "^3.23.4",
     "@tiptap/extension-code-block-lowlight": "^3.23.4",
     "@tiptap/extension-color": "^3.23.4",
     "@tiptap/extension-highlight": "^3.23.4",

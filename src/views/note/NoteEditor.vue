@@ -259,6 +259,7 @@
       </div>
     </div>
 
+    <NoteBubbleMenu v-if="editor" :editor="editor" :isDark="appStore.theme === 'dark'" @aiWrite="handleBubbleAIWrite" @translate="handleBubbleTranslate" @refine="handleBubbleRefine" @polish="handleBubblePolish" @expand="handleBubbleExpand" />
     <EditorContent :editor="editor" class="editor-content" />
 
     <!-- 链接对话框 -->
@@ -425,6 +426,10 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { all, createLowlight } from 'lowlight';
 import { VueNodeViewRenderer } from '@tiptap/vue-3';
 import CodeBlockComponent from './CodeBlockComponent.vue';
+import NoteBubbleMenu from './NoteBubbleMenu.vue';
+import { useAppStore } from '@/store';
+
+const appStore = useAppStore();
 
 const lowlight = createLowlight(all);
 
@@ -666,6 +671,27 @@ const closeAISidebar = () => {
   setTimeout(() => {
     showAIWriteBtn.value = true;
   }, 250);
+};
+
+const handleBubbleAIWrite = (text: string, command?: string) => {
+  console.log('BubbleMenu - AI 帮写:', text, '指令:', command);
+  openAIWrite();
+};
+
+const handleBubbleTranslate = (text: string) => {
+  console.log('BubbleMenu - 翻译:', text);
+};
+
+const handleBubbleRefine = (text: string) => {
+  console.log('BubbleMenu - 精炼:', text);
+};
+
+const handleBubblePolish = (text: string) => {
+  console.log('BubbleMenu - 润色:', text);
+};
+
+const handleBubbleExpand = (text: string) => {
+  console.log('BubbleMenu - 扩写:', text);
 };
 
 const showAISidebar = ref(false);
