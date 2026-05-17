@@ -17,16 +17,13 @@
 
       <div class="bubble-divider"></div>
 
-      <button class="bubble-btn" @click="handleTranslate" title="翻译">
+      <button class="bubble-btn" @click="handleInterpret" title="解读">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m5 8 6 6"></path>
-          <path d="m4 14 6-6 2-3"></path>
-          <path d="M2 5h12"></path>
-          <path d="M7 2h1"></path>
-          <path d="m22 22-5-10-5 10"></path>
-          <path d="M14 18h6"></path>
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
         </svg>
-        <span>翻译</span>
+        <span>解读</span>
       </button>
 
       <button class="bubble-btn" @click="handleRefine" title="精炼">
@@ -90,13 +87,16 @@
 
             <Transition name="dropdown">
               <div v-if="showCommandMenu" class="command-menu" :class="{ 'menu-up': commandMenuDirection === 'up', 'menu-down': commandMenuDirection === 'down' }">
-                <div class="command-item" @click="selectCommand('解读')">
+                <div class="command-item" @click="selectCommand('翻译')">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    <path d="m5 8 6 6"></path>
+                    <path d="m4 14 6-6 2-3"></path>
+                    <path d="M2 5h12"></path>
+                    <path d="M7 2h1"></path>
+                    <path d="m22 22-5-10-5 10"></path>
+                    <path d="M14 18h6"></path>
                   </svg>
-                  <span>解读</span>
+                  <span>翻译</span>
                 </div>
 
                 <div class="command-item" @click="selectCommand('总结')">
@@ -183,7 +183,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   aiWrite: [text: string, command?: string];
-  translate: [text: string];
+  interpret: [text: string];
   refine: [text: string];
   polish: [text: string];
   expand: [text: string];
@@ -277,7 +277,7 @@ const selectCommand = (command: string) => {
   currentCommand.value = command;
   showCommandMenu.value = false;
   const prefixMap: Record<string, string> = {
-    '解读': '请解读以下内容：',
+    '翻译': '请翻译以下内容：',
     '总结': '请总结以下内容：',
     '续写': '请续写以下内容：',
     '语法修正': '请修正以下内容的语法错误：',
@@ -317,9 +317,9 @@ const handleSend = () => {
   closeAIPanel();
 };
 
-const handleTranslate = () => {
+const handleInterpret = () => {
   const text = getSelectedText();
-  emit('translate', text);
+  emit('interpret', text);
 };
 
 const handleRefine = () => {

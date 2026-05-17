@@ -259,7 +259,7 @@
       </div>
     </div>
 
-    <NoteBubbleMenu v-if="editor" :editor="editor" :isDark="appStore.theme === 'dark'" @aiWrite="handleBubbleAIWrite" @translate="handleBubbleTranslate" @refine="handleBubbleRefine" @polish="handleBubblePolish" @expand="handleBubbleExpand" @openInChat="handleOpenInChat" />
+    <NoteBubbleMenu v-if="editor" :editor="editor" :isDark="appStore.theme === 'dark'" @aiWrite="handleBubbleAIWrite" @interpret="handleBubbleInterpret" @refine="handleBubbleRefine" @polish="handleBubblePolish" @expand="handleBubbleExpand" @openInChat="handleOpenInChat" />
     <EditorContent :editor="editor" class="editor-content" />
 
     <!-- 链接对话框 -->
@@ -680,8 +680,8 @@ const handleBubbleAIWrite = (text: string, command?: string) => {
   openAIWrite();
 };
 
-const handleBubbleTranslate = (text: string) => {
-  console.log('BubbleMenu - 翻译:', text);
+const handleBubbleInterpret = (text: string) => {
+  console.log('BubbleMenu - 解读:', text);
 };
 
 const handleBubbleRefine = (text: string) => {
