@@ -388,8 +388,10 @@
           v-model="chatInputText"
           placeholder="输入消息..."
           :is-streaming="isStreaming"
+          :note-references="noteReferences"
           @send="handleChatSend"
           @stop="handleChatStop"
+          @remove-reference="removeNoteReference"
         />
       </div>
     </Transition>
@@ -694,11 +696,28 @@ const handleBubbleExpand = (text: string) => {
   console.log('BubbleMenu - 扩写:', text);
 };
 
-const handleOpenInChat = (text: string) => {
-  console.log('BubbleMenu - 对话中打开:', text);
+const handleOpenInChat = (text: string, from: number, to: number) => {
+  console.log('BubbleMenu - 对话中打开:', text, from, to);
   showAISidebar.value = true;
-  if (text) {
-    chatInputText.value = `笔记中选中的内容为：\n"${text}"`;
+  
+  const isDuplicate = noteReferences.value.some(
+    ref => ref.from === from && ref.to === to
+  );
+  
+  if (!isDuplicate) {
+    const refId = `ref_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    noteReferences.value.push({
+      id: refId,
+      from,
+      to
+    });
+  }
+};
+
+const removeNoteReference = (refId: string) => {
+  const index = noteReferences.value.findIndex(ref => ref.id === refId);
+  if (index > -1) {
+    noteReferences.value.splice(index, 1);
   }
 };
 
@@ -709,6 +728,7 @@ const isResizing = ref(false);
 const sidebarMessagesRef = ref<HTMLElement | null>(null);
 
 const chatInputText = ref('');
+const noteReferences = ref<Array<{ id: string; from: number; to: number }>>([]);
 const isStreaming = ref(false);
 const streamingContent = ref('');
 const streamingReasoning = ref('');

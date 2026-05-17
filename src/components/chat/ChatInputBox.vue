@@ -1,6 +1,16 @@
 <template>
   <div class="chat-input-box">
     <div class="input-wrapper">
+      <div v-if="noteReferences && noteReferences.length > 0" class="note-references">
+        <NoteReferenceTag
+          v-for="ref in noteReferences"
+          :key="ref.id"
+          :from="ref.from"
+          :to="ref.to"
+          @remove="$emit('removeReference', ref.id)"
+        />
+      </div>
+      
       <textarea
         :value="modelValue"
         class="main-input"
@@ -72,17 +82,20 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue';
+import NoteReferenceTag from './NoteReferenceTag.vue';
 
 const props = defineProps<{
   modelValue: string;
   placeholder?: string;
   isStreaming?: boolean;
+  noteReferences?: Array<{ id: string; from: number; to: number }>;
 }>();
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void;
   (e: 'send'): void;
   (e: 'stop'): void;
+  (e: 'removeReference', refId: string): void;
 }>();
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
@@ -129,6 +142,13 @@ watch(() => props.modelValue, async () => {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   overflow: hidden;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.note-references {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 16px 4px;
 }
 
 .input-wrapper:focus-within {

@@ -187,7 +187,7 @@ const emit = defineEmits<{
   refine: [text: string];
   polish: [text: string];
   expand: [text: string];
-  openInChat: [text: string];
+  openInChat: [text: string, from: number, to: number];
 }>();
 
 const showAIPanel = ref(false);
@@ -338,8 +338,9 @@ const handleExpand = () => {
 };
 
 const handleOpenInChat = () => {
+  const { from, to } = props.editor.state.selection;
   const text = getSelectedText();
-  emit('openInChat', text);
+  emit('openInChat', text, from, to);
 };
 
 const handleClickOutside = (event: MouseEvent) => {
