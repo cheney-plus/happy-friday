@@ -238,7 +238,7 @@ function autoResize() {
 }
 
 .send-btn.active {
-  background: var(--text-secondary);
+  background: var(--text-primary);
   color: #ffffff;
 }
 

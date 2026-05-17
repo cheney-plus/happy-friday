@@ -1,6 +1,7 @@
 <template>
-  <div class="editor-wrapper">
-    <div class="editor-toolbar" v-if="editor">
+  <div class="editor-page">
+    <div class="editor-wrapper" :style="{ flex: '1 1 auto', minWidth: 0 }">
+      <div class="editor-toolbar" v-if="editor">
       <div class="toolbar-left-group">
       <!-- 第一组：撤销/重做、清除格式 -->
       <div class="tooltip-wrapper">
@@ -251,9 +252,9 @@
           </div>
         </div>
 
-        <button class="toolbar-btn ai-write-btn" @click="openAIWrite">
+        <button v-if="showAIWriteBtn" class="toolbar-btn ai-write-btn" @click="openAIWrite">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
-          AI 帮写
+          Friday 帮写
         </button>
       </div>
     </div>
@@ -324,12 +325,84 @@
         </div>
       </div>
     </div>
+    </div>
+
+    <Transition name="sidebar-slide">
+      <div v-if="showAISidebar" class="ai-chat-sidebar" :style="{ width: sidebarWidth + 'px' }">
+        <div class="sidebar-resize-handle" @mousedown="startResize"></div>
+        <div class="sidebar-header">
+          <div class="sidebar-title-group">
+            <div class="sidebar-avatar">
+              <span class="sidebar-avatar-icon">✦</span>
+            </div>
+            <span class="sidebar-title">Friday 帮写</span>
+          </div>
+          <button class="sidebar-close-btn" @click="closeAISidebar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="sidebar-messages" ref="sidebarMessagesRef">
+          <div class="sidebar-messages-inner">
+            <div v-if="chatMessages.length === 0 && !isStreaming" class="sidebar-empty">
+              <div class="sidebar-empty-icon">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                  <path d="M2 17l10 5 10-5"></path>
+                  <path d="M2 12l10 5 10-5"></path>
+                </svg>
+              </div>
+              <span class="sidebar-empty-text">向 Friday 提问，可获取写作帮助</span>
+              <span class="sidebar-empty-hint">主人，我可以使用写作Agent帮您修改这篇笔记</span>
+            </div>
+
+            <template v-for="(msg, index) in chatMessages" :key="index">
+              <UserMessage v-if="msg.role === 'user'" :content="msg.content" />
+              <AIMessage
+                v-else
+                :content="msg.content"
+                :reasoning="msg.reasoning"
+                :show-divider="true"
+                :show-rollback="false"
+                @action="(type) => handleChatAction(type, index)"
+              />
+            </template>
+
+            <template v-if="isStreaming">
+              <AIMessage
+                :content="streamingContent"
+                :reasoning-streaming-content="streamingReasoning"
+                :is-streaming="true"
+                :show-divider="false"
+                :show-rollback="false"
+              />
+            </template>
+          </div>
+        </div>
+
+        <ChatInputBox
+          v-model="chatInputText"
+          placeholder="输入消息..."
+          :is-streaming="isStreaming"
+          @send="handleChatSend"
+          @stop="handleChatStop"
+        />
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount, onMounted } from 'vue';
+import { ref, computed, watch, onBeforeUnmount, onMounted, nextTick } from 'vue';
 import { useEditor, EditorContent } from '@tiptap/vue-3';
+import { invoke } from '@tauri-apps/api/core';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import UserMessage from '@/components/chat/UserMessage.vue';
+import AIMessage from '@/components/chat/AIMessage.vue';
+import ChatInputBox from '@/components/chat/ChatInputBox.vue';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
@@ -579,8 +652,212 @@ const addShortcut = () => {
 };
 
 const openAIWrite = () => {
-  alert('AI 帮写功能开发中...');
+  if (showAISidebar.value) {
+    closeAISidebar();
+  } else {
+    showAIWriteBtn.value = false;
+    showAISidebar.value = true;
+  }
 };
+
+const closeAISidebar = () => {
+  showAISidebar.value = false;
+  showAIWriteBtn.value = false;
+  setTimeout(() => {
+    showAIWriteBtn.value = true;
+  }, 250);
+};
+
+const showAISidebar = ref(false);
+const showAIWriteBtn = ref(true);
+const sidebarWidth = ref(380);
+const isResizing = ref(false);
+const sidebarMessagesRef = ref<HTMLElement | null>(null);
+
+const chatInputText = ref('');
+const isStreaming = ref(false);
+const streamingContent = ref('');
+const streamingReasoning = ref('');
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  reasoning?: string;
+}
+
+const chatMessages = ref<ChatMessage[]>([]);
+
+let activeRequestId = '';
+let isDoneReceived = false;
+let unlistenChunk: UnlistenFn | null = null;
+let unlistenReasoning: UnlistenFn | null = null;
+let unlistenDone: UnlistenFn | null = null;
+let unlistenError: UnlistenFn | null = null;
+
+function loadModelConfig(modelId?: string) {
+  try {
+    const raw = localStorage.getItem('happy-friday-models');
+    if (raw) {
+      const models = JSON.parse(raw);
+      let model = models.find((m: any) => m.id === modelId);
+      if (!model && models.length > 0) {
+        const selectedId = localStorage.getItem('happy-friday-selected-model');
+        model = selectedId ? models.find((m: any) => m.id === selectedId) : models[0];
+      }
+      return model || null;
+    }
+  } catch (e) {
+    console.error('Failed to load model config:', e);
+  }
+  return null;
+}
+
+async function sendChatMessage(text: string) {
+  if (isStreaming.value || !text.trim()) return;
+
+  const model = loadModelConfig();
+  if (!model) {
+    console.error('No model config found');
+    return;
+  }
+
+  chatMessages.value.push({
+    role: 'user',
+    content: text
+  });
+
+  chatInputText.value = '';
+  isStreaming.value = true;
+  streamingContent.value = '';
+  streamingReasoning.value = '';
+  scrollSidebarToBottom();
+
+  activeRequestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  isDoneReceived = false;
+
+  try {
+    await invoke<void>('chat_without_memory', {
+      requestId: activeRequestId,
+      model: model,
+      message: text,
+      enableThinking: false
+    });
+  } catch (err) {
+    console.error('Chat invoke error:', err);
+    isStreaming.value = false;
+    streamingContent.value = '';
+  }
+}
+
+function handleChatSend() {
+  sendChatMessage(chatInputText.value);
+}
+
+async function handleChatStop() {
+  if (!isStreaming.value || !activeRequestId) return;
+  try {
+    await invoke('stop_chat', { requestId: activeRequestId });
+  } catch (err) {
+    console.error('Stop chat error:', err);
+  }
+}
+
+function handleChatAction(type: string, index: number) {
+  if (type === 'copy') return;
+  console.log('Chat action:', type, index);
+}
+
+function scrollSidebarToBottom() {
+  nextTick(() => {
+    const container = sidebarMessagesRef.value;
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
+  });
+}
+
+function startResize(e: MouseEvent) {
+  e.preventDefault();
+  isResizing.value = true;
+  const startX = e.clientX;
+  const startWidth = sidebarWidth.value;
+
+  function onMouseMove(ev: MouseEvent) {
+    const delta = startX - ev.clientX;
+    const newWidth = Math.min(Math.max(startWidth + delta, 300), 600);
+    sidebarWidth.value = newWidth;
+  }
+
+  function onMouseUp() {
+    isResizing.value = false;
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }
+
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+}
+
+async function setupChatListeners() {
+  unlistenChunk = await listen<{ requestId: string; content: string }>(
+    'chat-chunk',
+    (event) => {
+      if (event.payload.requestId !== activeRequestId) return;
+      streamingContent.value += event.payload.content;
+      scrollSidebarToBottom();
+    }
+  );
+
+  unlistenReasoning = await listen<{ requestId: string; content: string }>(
+    'chat-reasoning-chunk',
+    (event) => {
+      if (event.payload.requestId !== activeRequestId) return;
+      streamingReasoning.value += event.payload.content;
+      scrollSidebarToBottom();
+    }
+  );
+
+  unlistenDone = await listen<{ requestId: string; fullContent: string; reasoningContent: string }>(
+    'chat-done',
+    (event) => {
+      if (event.payload.requestId !== activeRequestId) return;
+      if (isDoneReceived) return;
+      isDoneReceived = true;
+
+      chatMessages.value.push({
+        role: 'assistant',
+        content: event.payload.fullContent,
+        reasoning: event.payload.reasoningContent || ''
+      });
+
+      isStreaming.value = false;
+      streamingContent.value = '';
+      streamingReasoning.value = '';
+      scrollSidebarToBottom();
+    }
+  );
+
+  unlistenError = await listen<{ requestId: string; error: string }>(
+    'chat-error',
+    (event) => {
+      if (event.payload.requestId !== activeRequestId) return;
+      isStreaming.value = false;
+      streamingContent.value = '';
+      streamingReasoning.value = '';
+      console.error('Chat error:', event.payload.error);
+    }
+  );
+}
+
+function cleanupChatListeners() {
+  unlistenChunk?.();
+  unlistenReasoning?.();
+  unlistenDone?.();
+  unlistenError?.();
+}
 
 const highlightColorPalette = [
   '#ffffff', '#fef3c7', '#fef9c3', '#ecfccb', '#d1fae5', '#ccfbf1', '#cffafe', '#dbeafe', '#ede9fe', '#fce7f3',
@@ -752,10 +1029,12 @@ watch(() => props.modelValue, (newValue) => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  setupChatListeners();
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside);
+  cleanupChatListeners();
   if (editor.value) {
     editor.value.destroy();
   }
@@ -1606,5 +1885,195 @@ const handleClickOutside = (event: Event) => {
 
 [data-theme='dark'] .editor-content::-webkit-scrollbar-thumb:hover {
   background-color: #6b7280;
+}
+
+.editor-page {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.ai-chat-sidebar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-resize-handle {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 10;
+  transition: background-color 0.15s ease;
+}
+
+.sidebar-resize-handle:hover,
+.sidebar-resize-handle:active {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  flex-shrink: 0;
+}
+
+.sidebar-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #6ee7b7 0%, #34d399 50%, #10b981 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar-avatar-icon {
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.sidebar-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.sidebar-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.sidebar-close-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.sidebar-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 0;
+}
+
+.sidebar-messages::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-messages::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 10px;
+}
+
+.sidebar-messages-inner {
+  max-width: 100%;
+  padding: 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 100%;
+}
+
+.sidebar-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 60px 24px;
+  gap: 10px;
+}
+
+.sidebar-empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--bg-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.sidebar-empty-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.sidebar-empty-hint {
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  display: block;
+  text-align: center;
+}
+
+.sidebar-slide-enter-active {
+  animation: sidebarSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar-slide-leave-active {
+  animation: sidebarSlideOut 0.2s ease-in;
+}
+
+@keyframes sidebarSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes sidebarSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+}
+
+[data-theme='dark'] .ai-chat-sidebar {
+  border-left-color: #374151;
+}
+
+[data-theme='dark'] .sidebar-empty-icon {
+  background: rgba(255, 255, 255, 0.06);
 }
 </style>
