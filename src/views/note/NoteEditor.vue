@@ -259,7 +259,7 @@
       </div>
     </div>
 
-    <NoteBubbleMenu v-if="editor" :editor="editor" :isDark="appStore.theme === 'dark'" @aiWrite="handleBubbleAIWrite" @translate="handleBubbleTranslate" @refine="handleBubbleRefine" @polish="handleBubblePolish" @expand="handleBubbleExpand" />
+    <NoteBubbleMenu v-if="editor" :editor="editor" :isDark="appStore.theme === 'dark'" @aiWrite="handleBubbleAIWrite" @translate="handleBubbleTranslate" @refine="handleBubbleRefine" @polish="handleBubblePolish" @expand="handleBubbleExpand" @openInChat="handleOpenInChat" />
     <EditorContent :editor="editor" class="editor-content" />
 
     <!-- 链接对话框 -->
@@ -692,6 +692,14 @@ const handleBubblePolish = (text: string) => {
 
 const handleBubbleExpand = (text: string) => {
   console.log('BubbleMenu - 扩写:', text);
+};
+
+const handleOpenInChat = (text: string) => {
+  console.log('BubbleMenu - 对话中打开:', text);
+  showAISidebar.value = true;
+  if (text) {
+    chatInputText.value = `笔记中选中的内容为：\n"${text}"`;
+  }
 };
 
 const showAISidebar = ref(false);

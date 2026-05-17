@@ -53,6 +53,15 @@
         </svg>
         <span>扩写</span>
       </button>
+
+      <div class="bubble-divider"></div>
+
+      <button class="bubble-btn chat-open-btn" @click="handleOpenInChat" title="对话中打开">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span>对话中打开</span>
+      </button>
     </div>
 
     <div v-else class="ai-input-wrapper" :class="{ 'is-dark': isDark }">
@@ -178,6 +187,7 @@ const emit = defineEmits<{
   refine: [text: string];
   polish: [text: string];
   expand: [text: string];
+  openInChat: [text: string];
 }>();
 
 const showAIPanel = ref(false);
@@ -325,6 +335,11 @@ const handlePolish = () => {
 const handleExpand = () => {
   const text = getSelectedText();
   emit('expand', text);
+};
+
+const handleOpenInChat = () => {
+  const text = getSelectedText();
+  emit('openInChat', text);
 };
 
 const handleClickOutside = (event: MouseEvent) => {

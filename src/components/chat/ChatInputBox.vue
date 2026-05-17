@@ -71,9 +71,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch, nextTick } from 'vue';
 
-defineProps<{
+const props = defineProps<{
   modelValue: string;
   placeholder?: string;
   isStreaming?: boolean;
@@ -106,6 +106,11 @@ function autoResize() {
     textarea.style.height = Math.min(textarea.scrollHeight, 160) + 'px';
   }
 }
+
+watch(() => props.modelValue, async () => {
+  await nextTick();
+  autoResize();
+});
 </script>
 
 <style scoped>
