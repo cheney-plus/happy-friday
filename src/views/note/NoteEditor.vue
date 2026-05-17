@@ -1415,6 +1415,7 @@ const handleClickOutside = (event: Event) => {
   flex: 1;
   overflow-y: auto;
   margin-top: 4px;
+  padding-bottom: 40px;
 }
 
 .editor-content::-webkit-scrollbar {
@@ -1443,6 +1444,7 @@ const handleClickOutside = (event: Event) => {
   line-height: 1.7;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   padding-top: 4px;
+  padding-bottom: 400px;
 }
 
 :deep(.prose-editor p.is-editor-empty:first-child::before) {

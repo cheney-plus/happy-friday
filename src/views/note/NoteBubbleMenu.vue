@@ -2,66 +2,110 @@
   <BubbleMenu
     v-if="editor"
     :editor="editor"
-    :tippy-options="{ duration: 150, placement: 'top' }"
+    :tippy-options="tippyOptions"
     class="note-bubble-menu"
   >
-    <div v-if="!showAIPanel" class="bubble-menu-container">
-      <button class="bubble-btn ai-write-btn" @click="openAIPanel" title="Friday 帮写">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-          <path d="M2 17l10 5 10-5"></path>
-          <path d="M2 12l10 5 10-5"></path>
-        </svg>
-        <span>帮写</span>
-      </button>
+    <div v-if="showAIOutput" class="ai-output-wrapper" :class="{ 'is-dark': isDark, 'position-top': outputPanelPosition === 'top', 'position-bottom': outputPanelPosition === 'bottom' }" :style="outputPanelStyle" @mousedown="handleWrapperMouseDown">
+      <div class="ai-output-backdrop" @mousedown="handleBackdropMouseDown"></div>
+      <div class="ai-output-panel" :class="{ 'is-dark': isDark }" @mousedown.stop.prevent>
+      <div class="ai-output-header">
+        <span class="ai-output-title">{{ getActionTitle() }}</span>
+        <button class="ai-output-close" @click="closeAIOutput" title="关闭">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
 
-      <div class="bubble-divider"></div>
+      <div class="ai-output-content">
+        <div class="markdown-body" v-html="renderedOutput"></div>
+        <span v-if="isStreaming" class="streaming-cursor"></span>
 
-      <button class="bubble-btn" @click="handleInterpret" title="解读">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="16" x2="12" y2="12"></line>
-          <line x1="12" y1="8" x2="12.01" y2="8"></line>
-        </svg>
-        <span>解读</span>
-      </button>
+        <div v-if="!isStreaming && aiOutputContent" class="thinking-hint">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <span>{{ getActionHint() }}</span>
+        </div>
 
-      <button class="bubble-btn" @click="handleRefine" title="精炼">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-        </svg>
-        <span>精炼</span>
-      </button>
+        <div v-if="!isStreaming && currentAction === 'polish' && aiOutputContent" class="polish-suggestions">
+          <div class="suggestion-item">
+            <strong>补足语法成分：</strong>补上介词「将」，符合现代汉语语法规范，语句更通顺。
+          </div>
+          <div class="suggestion-item">
+            <strong>统一用词习惯：</strong>把「结束」替换为「完成」，更契合技术文档的专业表达习惯。
+          </div>
+        </div>
+      </div>
 
-      <button class="bubble-btn" @click="handlePolish" title="润色">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 20h9"></path>
-          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-        </svg>
-        <span>润色</span>
-      </button>
+      <div class="ai-output-footer">
+        <div class="footer-left">
+          <span class="ai-badge">
+            内容由 AI 生成
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <polyline points="9 12 11 14 15 10"></polyline>
+            </svg>
+          </span>
+          <span class="char-count">已生成{{ getCharCount() }}字</span>
+        </div>
 
-      <button class="bubble-btn" @click="handleExpand" title="扩写">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 3 21 3 21 9"></polyline>
-          <polyline points="9 21 3 21 3 15"></polyline>
-          <line x1="21" y1="3" x2="14" y2="10"></line>
-          <line x1="3" y1="21" x2="10" y2="14"></line>
-        </svg>
-        <span>扩写</span>
-      </button>
+        <div class="footer-right">
+          <button class="footer-action-btn" @click="handleLike" title="点赞">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+            </svg>
+          </button>
+          <button class="footer-action-btn" @click="handleDislike" title="点踩">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path>
+            </svg>
+          </button>
+          <button class="footer-action-btn more-btn" title="更多">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="1"></circle>
+              <circle cx="19" cy="12" r="1"></circle>
+              <circle cx="5" cy="12" r="1"></circle>
+            </svg>
+          </button>
+        </div>
+      </div>
 
-      <div class="bubble-divider"></div>
+      <div v-if="currentAction === 'interpret'" class="ai-output-actions single-action">
+        <button class="action-btn primary" @click="handleReInterpret" :disabled="isStreaming || !aiOutputContent">
+          重新解读
+        </button>
+      </div>
 
-      <button class="bubble-btn chat-open-btn" @click="handleOpenInChat" title="对话中打开">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-        </svg>
-        <span>对话中打开</span>
-      </button>
+      <div v-else class="ai-output-actions multi-actions">
+        <button class="action-btn secondary" @click="handleRewrite" :disabled="isStreaming">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          重写
+        </button>
+        <button class="action-btn danger" @click="handleDiscard" :disabled="isStreaming">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          弃用
+        </button>
+        <button class="action-btn primary" @click="handleReplace" :disabled="isStreaming || !aiOutputContent">
+          替换
+        </button>
+        <button class="action-btn primary-outline" @click="handleInsert" :disabled="isStreaming || !aiOutputContent">
+          插入
+        </button>
+      </div>
+    </div>
     </div>
 
-    <div v-else class="ai-input-wrapper" :class="{ 'is-dark': isDark }">
+    <div v-else-if="showAIPanel" class="ai-input-wrapper" :class="{ 'is-dark': isDark }">
       <textarea
         ref="inputRef"
         v-model="inputText"
@@ -169,12 +213,71 @@
         </div>
       </div>
     </div>
+
+    <div v-else class="bubble-menu-container">
+      <button class="bubble-btn ai-write-btn" @click="openAIPanel" title="Friday 帮写">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+          <path d="M2 17l10 5 10-5"></path>
+          <path d="M2 12l10 5 10-5"></path>
+        </svg>
+        <span>帮写</span>
+      </button>
+
+      <div class="bubble-divider"></div>
+
+      <button class="bubble-btn" @click="handleInterpret" title="解读">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span>解读</span>
+      </button>
+
+      <button class="bubble-btn" @click="handleRefine" title="精炼">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        <span>精炼</span>
+      </button>
+
+      <button class="bubble-btn" @click="handlePolish" title="润色">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9"></path>
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+        </svg>
+        <span>润色</span>
+      </button>
+
+      <button class="bubble-btn" @click="handleExpand" title="扩写">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <polyline points="9 21 3 21 3 15"></polyline>
+          <line x1="21" y1="3" x2="14" y2="10"></line>
+          <line x1="3" y1="21" x2="10" y2="14"></line>
+        </svg>
+        <span>扩写</span>
+      </button>
+
+      <div class="bubble-divider"></div>
+
+      <button class="bubble-btn chat-open-btn" @click="handleOpenInChat" title="对话中打开">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span>对话中打开</span>
+      </button>
+    </div>
   </BubbleMenu>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { BubbleMenu } from '@tiptap/vue-3/menus';
+import { marked } from 'marked';
+
+marked.setOptions({ breaks: true, gfm: true });
 
 const props = defineProps<{
   editor: any;
@@ -188,6 +291,8 @@ const emit = defineEmits<{
   polish: [text: string];
   expand: [text: string];
   openInChat: [text: string, from: number, to: number];
+  replaceText: [text: string];
+  insertText: [text: string];
 }>();
 
 const showAIPanel = ref(false);
@@ -199,9 +304,187 @@ const currentCommand = ref('');
 const commandMenuDirection = ref<'up' | 'down'>('down');
 const isJustOpened = ref(false);
 
+const showAIOutput = ref(false);
+const aiOutputContent = ref('');
+const currentAction = ref('');
+const isStreaming = ref(false);
+const streamingTimer = ref<number | null>(null);
+const outputPanelPosition = ref<'top' | 'bottom'>('bottom');
+const outputPanelStyle = ref<Record<string, string>>({});
+
+const tippyOptions = computed(() => ({
+  duration: 150,
+  placement: outputPanelPosition.value,
+  hideOnClick: false,
+  interactive: true,
+  maxWidth: 'none',
+  appendTo: () => document.body,
+}));
+
+const handleWrapperMouseDown = (event: MouseEvent) => {
+  if (event.target === event.currentTarget) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+  }
+};
+
+const handleBackdropMouseDown = (event: MouseEvent) => {
+  event.preventDefault();
+  event.stopPropagation();
+  event.stopImmediatePropagation();
+};
+
+const handleBackdropClick = (event: MouseEvent) => {
+  event.preventDefault();
+  event.stopPropagation();
+};
+
+const renderedOutput = computed(() => {
+  if (!aiOutputContent.value) return '';
+  return marked.parse(aiOutputContent.value) as string;
+});
+
 const getSelectedText = () => {
   const { from, to } = props.editor.state.selection;
   return props.editor.state.doc.textBetween(from, to, ' ');
+};
+
+const getActionTitle = () => {
+  const titleMap: Record<string, string> = {
+    'interpret': '快速解读',
+    'refine': '精炼内容',
+    'polish': '快速润色',
+    'expand': '智能扩写'
+  };
+  return titleMap[currentAction.value] || 'AI 处理';
+};
+
+const getActionHint = () => {
+  const hintMap: Record<string, string> = {
+    'interpret': '解读思路',
+    'refine': '精炼思路',
+    'polish': '润色思路',
+    'expand': '扩写思路'
+  };
+  return hintMap[currentAction.value] || '处理思路';
+};
+
+const getCharCount = () => {
+  return aiOutputContent.value.replace(/\s/g, '').length;
+};
+
+const mockResponses: Record<string, string> = {
+  interpret: `◆ **收敛完成后**，将推荐版本清单写入《技术选型白名单》，作为 Code Review 和架构评审的**强制检查项**。
+
+**核心要点：**
+- 建立技术选型的标准化流程
+- 确保代码质量和架构一致性
+- 提供明确的审查标准`,
+
+  refine: `将推荐版本清单写入《技术选型白名单》：
+
+- 作为 Code Review 强制检查项
+- 纳入架构评审流程
+- 定期更新和维护`,
+
+  polish: `◆ 收敛完成后，将推荐版本清单写入《技术选型白名单》，作为 Code Review 和架构评审的强制检查项。`,
+
+  expand: `◆ **收敛完成后**，团队需要将经过充分验证的推荐版本清单正式写入《技术选型白名单》文档中。这一文档将成为后续所有 Code Review 和架构评审过程中的**强制性检查依据**。
+
+**具体实施步骤：**
+
+1. **版本验证阶段**
+   - 对候选版本进行全面的功能测试
+   - 评估性能指标和兼容性
+   - 记录测试结果和发现的问题
+
+2. **文档更新流程**
+   - 将验证通过的版本信息录入白名单
+   - 标注每个版本的适用场景和限制条件
+   - 设定版本的有效期和复审时间
+
+3. **执行监督机制**
+   - 在 Code Review 中强制检查版本合规性
+   - 架构评审时核对技术选型是否符合规范
+   - 定期审计和更新白名单内容
+
+通过这一机制，可以确保技术选型的一致性和可控性。`
+};
+
+const startStreaming = (action: string) => {
+  if (streamingTimer.value) {
+    clearTimeout(streamingTimer.value);
+    streamingTimer.value = null;
+  }
+  
+  closeAIPanel();
+  
+  const { from, to } = props.editor.state.selection;
+  try {
+    const startCoords = props.editor.view.coordsAtPos(from);
+    const endCoords = props.editor.view.coordsAtPos(to);
+    
+    const viewportHeight = window.innerHeight;
+    const panelHeight = 400;
+    const gap = 20;
+    
+    const spaceBelow = viewportHeight - endCoords.bottom - gap;
+    const spaceAbove = startCoords.top - gap;
+    
+    if (spaceBelow >= panelHeight) {
+      outputPanelPosition.value = 'bottom';
+      outputPanelStyle.value = {
+        paddingTop: `${endCoords.bottom + gap}px`
+      };
+    } else if (spaceAbove >= panelHeight) {
+      outputPanelPosition.value = 'top';
+      outputPanelStyle.value = {
+        paddingBottom: `${viewportHeight - startCoords.top + gap}px`
+      };
+    } else {
+      outputPanelPosition.value = 'bottom';
+      outputPanelStyle.value = {
+        paddingTop: `${startCoords.top + gap}px`
+      };
+    }
+  } catch (error) {
+    outputPanelPosition.value = 'bottom';
+    outputPanelStyle.value = { paddingTop: '80px' };
+  }
+  
+  showAIOutput.value = true;
+  currentAction.value = action;
+  isStreaming.value = true;
+  aiOutputContent.value = '';
+
+  const fullText = mockResponses[action] || '';
+  let currentIndex = 0;
+
+  const stream = () => {
+    if (currentIndex < fullText.length) {
+      const chunkSize = Math.floor(Math.random() * 3) + 1;
+      aiOutputContent.value += fullText.slice(currentIndex, currentIndex + chunkSize);
+      currentIndex += chunkSize;
+      streamingTimer.value = window.setTimeout(stream, 20 + Math.random() * 30);
+    } else {
+      isStreaming.value = false;
+      streamingTimer.value = null;
+    }
+  };
+
+  setTimeout(stream, 300);
+};
+
+const closeAIOutput = () => {
+  if (streamingTimer.value) {
+    clearTimeout(streamingTimer.value);
+    streamingTimer.value = null;
+  }
+  showAIOutput.value = false;
+  aiOutputContent.value = '';
+  currentAction.value = '';
+  isStreaming.value = false;
 };
 
 const resetAIPanel = () => {
@@ -212,6 +495,25 @@ const resetAIPanel = () => {
     currentCommand.value = '';
     selectedText.value = '';
   }
+  
+  if (showAIOutput.value) {
+    if (streamingTimer.value) {
+      clearTimeout(streamingTimer.value);
+      streamingTimer.value = null;
+    }
+    showAIOutput.value = false;
+    aiOutputContent.value = '';
+    currentAction.value = '';
+    isStreaming.value = false;
+  }
+};
+
+const closeAIPanel = () => {
+  showAIPanel.value = false;
+  showCommandMenu.value = false;
+  inputText.value = '';
+  currentCommand.value = '';
+  selectedText.value = '';
 };
 
 const openAIPanel = async () => {
@@ -243,14 +545,6 @@ const openAIPanel = async () => {
   setTimeout(() => {
     isJustOpened.value = false;
   }, 100);
-};
-
-const closeAIPanel = () => {
-  showAIPanel.value = false;
-  showCommandMenu.value = false;
-  inputText.value = '';
-  currentCommand.value = '';
-  selectedText.value = '';
 };
 
 const toggleCommandMenu = async (e: MouseEvent) => {
@@ -320,21 +614,61 @@ const handleSend = () => {
 const handleInterpret = () => {
   const text = getSelectedText();
   emit('interpret', text);
+  startStreaming('interpret');
 };
 
 const handleRefine = () => {
   const text = getSelectedText();
   emit('refine', text);
+  startStreaming('refine');
 };
 
 const handlePolish = () => {
   const text = getSelectedText();
   emit('polish', text);
+  startStreaming('polish');
 };
 
 const handleExpand = () => {
   const text = getSelectedText();
   emit('expand', text);
+  startStreaming('expand');
+};
+
+const handleLike = () => {
+  console.log('点赞');
+};
+
+const handleDislike = () => {
+  console.log('点踩');
+};
+
+const handleReInterpret = () => {
+  if (isStreaming.value || !aiOutputContent.value) return;
+  aiOutputContent.value = '';
+  startStreaming('interpret');
+};
+
+const handleInsert = () => {
+  if (!aiOutputContent.value || isStreaming.value) return;
+  emit('insertText', aiOutputContent.value);
+  closeAIOutput();
+};
+
+const handleRewrite = () => {
+  if (isStreaming.value) return;
+  aiOutputContent.value = '';
+  startStreaming(currentAction.value);
+};
+
+const handleDiscard = () => {
+  closeAIOutput();
+};
+
+const handleReplace = () => {
+  if (!aiOutputContent.value || isStreaming.value) return;
+  emit('replaceText', aiOutputContent.value);
+  closeAIOutput();
 };
 
 const handleOpenInChat = () => {
@@ -714,29 +1048,434 @@ onBeforeUnmount(() => {
   height: 30px;
   border: none;
   border-radius: 50%;
-  background: var(--text-tertiary, #9ca3af);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #ffffff;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-left: 2px;
+  opacity: 0.5;
 }
 
 .send-btn.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #ffffff;
+  opacity: 1;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
 }
 
 .send-btn:hover:not(:disabled) {
-  transform: scale(1.06);
-}
-
-.send-btn:active:not(:disabled) {
-  transform: scale(0.94);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
 }
 
 .send-btn:disabled {
+  cursor: not-allowed;
+}
+
+.ai-output-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ai-output-wrapper.position-top {
+  justify-content: flex-end;
+}
+
+.ai-output-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.1);
+  z-index: -1;
+}
+
+.ai-output-panel {
+  position: relative;
+  width: 480px;
+  max-width: 520px;
+  background: var(--bg-primary, #ffffff);
+  border: 1.5px solid var(--border-color, #e5e7eb);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.06);
+  animation: panel-in 0.18s ease-out;
+  overflow: hidden;
+}
+
+.ai-output-panel.is-dark {
+  background: #1f2937;
+  border-color: #374151;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+.ai-output-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border-color, #f3f4f6);
+}
+
+.is-dark .ai-output-header {
+  border-bottom-color: #374151;
+}
+
+.ai-output-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  letter-spacing: -0.01em;
+}
+
+.is-dark .ai-output-title {
+  color: #f9fafb;
+}
+
+.ai-output-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary, #9ca3af);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.ai-output-close:hover {
+  background: var(--bg-hover, #f3f4f6);
+  color: var(--text-primary, #111827);
+}
+
+.is-dark .ai-output-close:hover {
+  background: #374151;
+  color: #f9fafb;
+}
+
+.ai-output-content {
+  padding: 16px;
+  max-height: 320px;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-primary, #111827);
+}
+
+.is-dark .ai-output-content {
+  color: #e5e7eb;
+}
+
+.ai-output-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ai-output-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ai-output-content::-webkit-scrollbar-thumb {
+  background: var(--border-color, #e5e7eb);
+  border-radius: 10px;
+}
+
+.ai-output-content::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary, #9ca3af);
+}
+
+.ai-output-content .markdown-body :deep(p) {
+  margin: 0 0 10px;
+}
+
+.ai-output-content .markdown-body :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.ai-output-content .markdown-body :deep(strong) {
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.is-dark .ai-output-content .markdown-body :deep(strong) {
+  color: #f9fafb;
+}
+
+.ai-output-content .markdown-body :deep(ul),
+.ai-output-content .markdown-body :deep(ol) {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.ai-output-content .markdown-body :deep(li) {
+  margin: 4px 0;
+}
+
+.streaming-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 16px;
+  background: #667eea;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 0.8s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.thinking-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding-top: 12px;
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.thinking-hint svg {
+  flex-shrink: 0;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.polish-suggestions {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--bg-hover, #f9fafb);
+  border-radius: 10px;
+  border-left: 3px solid #667eea;
+}
+
+.is-dark .polish-suggestions {
+  background: #374151;
+}
+
+.suggestion-item {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary, #4b5563);
+  margin-bottom: 8px;
+}
+
+.suggestion-item:last-child {
+  margin-bottom: 0;
+}
+
+.suggestion-item strong {
+  color: var(--text-primary, #111827);
+  font-weight: 600;
+}
+
+.is-dark .suggestion-item {
+  color: #d1d5db;
+}
+
+.is-dark .suggestion-item strong {
+  color: #f9fafb;
+}
+
+.ai-output-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.ai-badge svg {
+  color: #10b981;
+}
+
+.char-count {
+  font-size: 12px;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.footer-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary, #9ca3af);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.footer-action-btn:hover {
+  background: var(--bg-hover, #f3f4f6);
+  color: var(--text-secondary, #6b7280);
+}
+
+.is-dark .footer-action-btn:hover {
+  background: #374151;
+  color: #d1d5db;
+}
+
+.more-btn {
+  margin-left: 4px;
+}
+
+.ai-output-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px 14px;
+  flex-wrap: wrap;
+}
+
+.ai-output-actions.single-action {
+  justify-content: center;
+}
+
+.ai-output-actions.multi-actions {
+  justify-content: flex-end;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--bg-primary, #ffffff);
+  color: var(--text-secondary, #6b7280);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.action-btn:hover:not(:disabled) {
+  background: var(--bg-hover, #f9fafb);
+  border-color: var(--text-tertiary, #9ca3af);
+  color: var(--text-primary, #111827);
+}
+
+.action-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.action-btn.secondary {
+  border-color: var(--border-color, #e5e7eb);
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  border-color: transparent;
+  font-weight: 600;
+  padding: 6px 16px;
+  margin-left: auto;
+}
+
+.action-btn.primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5568d3 0%, #653d91 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+}
+
+.action-btn.danger {
+  color: #ef4444;
+  border-color: #fecaca;
+}
+
+.action-btn.danger:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+.is-dark .action-btn {
+  background: #374151;
+  border-color: #4b5563;
+  color: #d1d5db;
+}
+
+.is-dark .action-btn:hover:not(:disabled) {
+  background: #4b5563;
+  border-color: #6b7280;
+  color: #f9fafb;
+}
+
+.is-dark .action-btn.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: transparent;
+}
+
+.is-dark .action-btn.primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5568d3 0%, #653d91 100%);
+}
+
+.is-dark .action-btn.danger {
+  color: #f87171;
+  border-color: #7f1d1d;
+}
+
+.is-dark .action-btn.danger:hover:not(:disabled) {
+  background: #7f1d1d;
+  border-color: #991b1b;
+  color: #fecaca;
+}
+
+.action-btn.primary-outline {
+  background: transparent;
+  color: #667eea;
+  border-color: #667eea;
+  font-weight: 600;
+}
+
+.action-btn.primary-outline:hover:not(:disabled) {
+  background: rgba(102, 126, 234, 0.08);
+  border-color: #5568d3;
+  color: #5568d3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+.is-dark .action-btn.primary-outline {
+  color: #a78bfa;
+  border-color: #a78bfa;
+}
+
+.is-dark .action-btn.primary-outline:hover:not(:disabled) {
+  background: rgba(167, 139, 250, 0.12);
+  border-color: #8b5cf6;
+  color: #8b5cf6;
 }
 
 .btn-switch-enter-active {

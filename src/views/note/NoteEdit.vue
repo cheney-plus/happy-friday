@@ -294,6 +294,7 @@ onDeactivated(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding-bottom: 16px;
 }
 
 .note-edit-footer {
