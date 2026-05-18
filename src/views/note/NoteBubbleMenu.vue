@@ -1099,12 +1099,15 @@ onBeforeUnmount(() => {
   position: relative;
   width: 480px;
   max-width: 520px;
+  max-height: 400px;
   background: var(--bg-primary, #ffffff);
   border: 1.5px solid var(--border-color, #e5e7eb);
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.06);
   animation: panel-in 0.18s ease-out;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .ai-output-panel.is-dark {
@@ -1162,7 +1165,7 @@ onBeforeUnmount(() => {
 
 .ai-output-content {
   padding: 16px;
-  max-height: 320px;
+  max-height: 280px;
   overflow-y: auto;
   font-size: 14px;
   line-height: 1.7;
@@ -1287,7 +1290,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
+  padding: 0px 16px;
 }
 
 .footer-left {
@@ -1351,7 +1354,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px 14px;
+  padding: 8px 16px 10px;
   flex-wrap: wrap;
 }
 
