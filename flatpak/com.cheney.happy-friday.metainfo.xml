@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.cheney.happy-friday</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Happy Friday</name>
+  <summary>AI-powered assistant with notes, schedules, and chat</summary>
+  <description>
+    <p>
+      Happy Friday is a desktop application that integrates AI chat,
+      note-taking, and schedule management into a unified workspace.
+      Built with Tauri and Vue.js, it provides a native desktop experience
+      with modern web technologies.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>AI-powered chat conversations with multiple model support</li>
+      <li>Rich text note editor with TipTap</li>
+      <li>Schedule and calendar management</li>
+      <li>Workspace organization</li>
+      <li>Conversation history tracking</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">com.cheney.happy-friday.desktop</launchable>
+  <url type="homepage">https://github.com/cheney/happy-friday</url>
+  <provides>
+    <binary>happy-friday</binary>
+  </provides>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.1.0" date="2025-05-19">
+      <description>
+        <p>Initial release of Happy Friday.</p>
+      </description>
+    </release>
+  </releases>
+</component>

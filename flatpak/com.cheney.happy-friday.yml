@@ -1,0 +1,47 @@
+app-id: com.cheney.happy-friday
+runtime: org.gnome.Platform
+runtime-version: '46'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+  - org.freedesktop.Sdk.Extension.node22
+command: happy-friday
+
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+  - --share=network
+  - --filesystem=home
+  - --socket=pulseaudio
+  - --talk-name=org.freedesktop.Notifications
+
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/node22/bin
+  env:
+    CARGO_HOME: /run/build/happy-friday/cargo
+    npm_config_nodedir: /usr/lib/sdk/node22
+    PNPM_HOME: /run/build/happy-friday/pnpm-store
+
+modules:
+  - name: happy-friday
+    buildsystem: simple
+    build-options:
+      build-args:
+        - --network
+    build-commands:
+      - npm install -g pnpm@9 --prefix /app
+      - pnpm config set store-dir ${PNPM_HOME}
+      - pnpm install --frozen-lockfile
+      - pnpm build
+      - cargo build --release --manifest-path src-tauri/Cargo.toml
+      - install -Dm755 src-tauri/target/release/happy-friday /app/bin/happy-friday
+      - install -Dm644 flatpak/com.cheney.happy-friday.desktop /app/share/applications/com.cheney.happy-friday.desktop
+      - install -Dm644 src-tauri/icons/32x32.png /app/share/icons/hicolor/32x32/apps/com.cheney.happy-friday.png
+      - install -Dm644 src-tauri/icons/128x128.png /app/share/icons/hicolor/128x128/apps/com.cheney.happy-friday.png
+      - install -Dm644 src-tauri/icons/128x128@2x.png /app/share/icons/hicolor/256x256/apps/com.cheney.happy-friday.png
+      - install -Dm644 flatpak/com.cheney.happy-friday.metainfo.xml /app/share/metainfo/com.cheney.happy-friday.metainfo.xml
+    sources:
+      - type: dir
+        path: ..

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Happy Friday
+Comment=AI-powered assistant with notes, schedules, and chat
+Exec=happy-friday
+Icon=com.cheney.happy-friday
+Type=Application
+Categories=Office;Utility;
+Keywords=ai;chat;notes;schedule;assistant;
+StartupWMClass=happy-friday
+Terminal=false
