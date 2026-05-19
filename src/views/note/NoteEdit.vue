@@ -8,13 +8,9 @@
       </div>
 
       <div class="header-center">
-        <input
-          v-model="noteTitle"
-          class="note-title-input"
-          type="text"
-          :placeholder="t('note.untitled')"
-          @input="onTitleChange"
-        />
+        <div class="note-title-display">
+          {{ noteTitle || '新建笔记' }}
+        </div>
       </div>
 
       <div class="header-right">
@@ -92,14 +88,29 @@ const lastSavedTime = ref('');
 const moreMenuVisible = ref(false);
 const moreMenuStyle = reactive({ left: '0px', top: '0px' });
 
+const extractPlainText = (text: string) => {
+  return text
+    .replace(/<\/?(p|div|h[1-6]|li|blockquote|br)[^>]*>/gi, '\n') // Convert block tags to newlines
+    .replace(/<[^>]+>/g, '') // Remove remaining HTML tags
+    .replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Extract link text
+    .replace(/^[# \t\-+>]+/gm, '') // Remove markdown list/heading prefixes
+    .replace(/[*_~`]/g, '') // Remove inline styles
+    .trim();
+};
+
 const onEditorChange = (content: string) => {
+  const plainText = extractPlainText(content);
+  const firstLine = (plainText.split('\n').find(line => line.trim() !== '') || '').trim();
+  noteTitle.value = firstLine ? (firstLine.length > 20 ? firstLine.substring(0, 20) : firstLine) : '新建笔记';
+
   updateStats(content);
   isSaved.value = false;
   scheduleSave();
 };
 
 const updateStats = (content: string) => {
-  const text = content.replace(/\s+/g, ' ').trim();
+  const text = extractPlainText(content).replace(/\s+/g, ' ').trim();
   wordCount.value = text ? text.split(/\s+/).filter(Boolean).length : 0;
   charCount.value = text.length;
 };
@@ -107,7 +118,7 @@ const updateStats = (content: string) => {
 const scheduleSave = () => {
   const id = noteId.value;
   if (!id) return;
-  const contentText = noteContent.value.replace(/[#*`\[\]()>|_~-]/g, '').replace(/\n+/g, ' ').trim();
+  const contentText = extractPlainText(noteContent.value).replace(/\s+/g, ' ').trim();
   noteStore.scheduleSave(id, noteTitle.value, noteContent.value, contentText);
   isSaved.value = false;
 };
@@ -115,11 +126,6 @@ const scheduleSave = () => {
 const goBack = async () => {
   await noteStore.flushPendingSave();
   router.push({ name: 'note' });
-};
-
-const onTitleChange = () => {
-  isSaved.value = false;
-  scheduleSave();
 };
 
 const handleExport = () => {
@@ -247,31 +253,17 @@ onDeactivated(() => {
   min-width: 0;
 }
 
-.note-title-input {
+.note-title-display {
   width: 100%;
   max-width: 480px;
-  border: none;
-  outline: none;
-  background: transparent;
   font-size: 15px;
   font-weight: 500;
   color: var(--text-primary);
   text-align: center;
   padding: 6px 12px;
-  border-radius: 6px;
-  transition: background-color 0.15s;
-}
-
-.note-title-input::placeholder {
-  color: var(--text-tertiary);
-}
-
-.note-title-input:hover {
-  background-color: var(--bg-hover);
-}
-
-.note-title-input:focus {
-  background-color: var(--bg-hover);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .save-status {

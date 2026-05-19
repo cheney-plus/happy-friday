@@ -265,13 +265,25 @@ const createNewNote = async () => {
   await noteStore.createNote();
 };
 
+const extractPlainText = (text: string) => {
+  return text
+    .replace(/<\/?(p|div|h[1-6]|li|blockquote|br)[^>]*>/gi, '\n') // Convert block tags to newlines
+    .replace(/<[^>]+>/g, '') // Remove remaining HTML tags
+    .replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Extract link text
+    .replace(/^[# \t\-+>]+/gm, '') // Remove markdown list/heading prefixes
+    .replace(/[*_~`]/g, '') // Remove inline styles
+    .trim();
+};
+
 const onEditorChange = (content: string) => {
   const note = noteStore.currentNote;
   if (!note) return;
 
-  const titleMatch = content.match(/^#\s+(.+)/m);
-  const title = titleMatch ? titleMatch[1].trim() : note.title;
-  const contentText = content.replace(/[#*`\[\]()>|_~-]/g, '').replace(/\n+/g, ' ').trim();
+  const plainText = extractPlainText(content);
+  const firstLine = (plainText.split('\n').find(line => line.trim() !== '') || '').trim();
+  const title = firstLine ? (firstLine.length > 20 ? firstLine.substring(0, 20) : firstLine) : '新建笔记';
+  const contentText = plainText.replace(/\s+/g, ' ').trim();
 
   noteStore.scheduleSave(note.id, title, content, contentText);
 };
