@@ -31,8 +31,7 @@ modules:
     build-commands:
       - NPM_CONFIG_PREFIX=/app npm install -g pnpm@9
       - pnpm install --frozen-lockfile
-      - pnpm build
-      - cd src-tauri && cargo build --release
+      - pnpm tauri build --no-bundle
       - install -Dm755 src-tauri/target/release/happy-friday ${FLATPAK_DEST}/bin/happy-friday
       - install -Dm644 com.cheney.happy-friday.desktop ${FLATPAK_DEST}/share/applications/com.cheney.happy-friday.desktop
       - install -Dm644 src-tauri/icons/32x32.png ${FLATPAK_DEST}/share/icons/hicolor/32x32/apps/com.cheney.happy-friday.png
