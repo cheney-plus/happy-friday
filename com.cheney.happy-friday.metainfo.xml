@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.cheney.happy-friday</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Happy Friday</name>
+  <summary>AI-powered chat, notes, and scheduling assistant</summary>
+  <description>
+    <p>
+      Happy Friday is an AI-powered desktop assistant that integrates chat,
+      note-taking, and scheduling capabilities. It supports multiple LLM
+      providers and offers a seamless workflow for managing your daily tasks.
+    </p>
+  </description>
+  <launchable type="desktop-id">com.cheney.happy-friday.desktop</launchable>
+  <url type="homepage">https://github.com/cheney/happy-friday</url>
+  <provides>
+    <binary>happy-friday</binary>
+  </provides>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.1.0" date="2025-05-21">
+      <description>
+        <p>Initial release</p>
+      </description>
+    </release>
+  </releases>
+</component>
